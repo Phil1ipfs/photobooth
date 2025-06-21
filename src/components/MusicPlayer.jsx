@@ -20,6 +20,7 @@ const MusicPlayer = () => {
 
   useEffect(() => {
     // Apply volume setting whenever it changes
+    
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
