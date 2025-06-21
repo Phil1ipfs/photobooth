@@ -32,7 +32,7 @@ const MusicPlayer = () => {
       } else {
         audioRef.current.play().catch(error => {
           console.error("Error playing audio:", error);
-          alert("Couldn't play the music. Please check if the audio file exists in your assets folder.");
+          alert("Couldn't play the music. Please check if the audio file exists in your assets folder uwu.");
         });
       }
       setIsPlaying(!isPlaying);
