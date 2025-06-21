@@ -1,4 +1,41 @@
-/* Enhanced App.css */
+@media (max-width: 600px) {
+  .app-wrapper {
+    padding: 1rem;
+  }
+  
+  .camera-box {
+    padding: 1.5rem;
+  }
+  
+  .camera-viewport {
+    width: 320px;
+    height: 240px;
+  }
+  
+  .snap-button {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+  
+  .thumbnail {
+    width: 120px;
+    height: 90px;
+  }
+  
+  .photo-strip {
+    padding: 1rem;
+  }
+  
+  .music-controls {
+    width: 220px;
+    left: -10px;
+  }
+}
+
+@keyframes flash {
+  0% { opacity: 0.7; }
+  100% { opacity: 0; }
+}/* Enhanced App.css */
 body {
   margin: 0;
   font-family: sans-serif;
@@ -17,7 +54,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 3rem;
+  gap: 1rem;
   max-width: 1400px;
   width: 100%;
 }
@@ -282,6 +319,105 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+/* Strip Customizer Styles */
+.strip-customizer {
+  width: 100%;
+  margin: 1rem 0 1.5rem;
+  text-align: center;
+}
+
+.strip-customizer h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+  text-align: left;
+}
+.template-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.template-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.template-option.selected {
+  border-color: #333;
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.template-option:hover {
+  border-color: #ccc;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.template-icon {
+  font-size: 1.25rem;
+}
+
+.template-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.template-option.selected .template-name {
+  color: #000;
+  font-weight: bold;
+}
+
+/* Preview Section Styles */
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  height: fit-content;
+  min-width: 220px;
+  position: relative;
+  z-index: 10;
+  margin-left: 1rem;
+}
+
+.preview-section h4 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+}
+
+.strip-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-canvas {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  min-height: 500px;
+  display: block;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .camera-viewport {
@@ -293,12 +429,17 @@ body {
     width: 160px;
     height: 120px;
   }
+  
+  .preview-section {
+    min-width: 180px;
+  }
 }
 
 @media (max-width: 900px) {
   .app-container {
     flex-direction: column;
     gap: 2rem;
+    align-items: center;
   }
   
   .camera-viewport {
@@ -310,38 +451,146 @@ body {
     width: 140px;
     height: 105px;
   }
-}
-
-@media (max-width: 600px) {
-  .app-wrapper {
-    padding: 1rem;
+  
+  .preview-section {
+    width: 100%;
+    max-width: 400px;
+    margin-left: 0;
   }
   
-  .camera-box {
-    padding: 1.5rem;
-  }
-  
-  .camera-viewport {
-    width: 320px;
-    height: 240px;
-  }
-  
-  .snap-button {
-    padding: 1rem 2rem;
-    font-size: 1rem;
-  }
-  
-  .thumbnail {
-    width: 120px;
-    height: 90px;
-  }
-  
-  .photo-strip {
-    padding: 1rem;
+  .customizer-container {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.5rem;
   }
 }
 
-@keyframes flash {
-  0% { opacity: 0.7; }
-  100% { opacity: 0; }
+/* Music Player Styles */
+.music-player {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.music-toggle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #d10014;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.music-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.music-icon {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.music-controls {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  width: 250px;
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.song-info {
+  margin-bottom: 1rem;
+}
+
+.song-title {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.song-artist {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.play-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #d10014;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.play-button:hover {
+  background: #ff2d43;
+}
+
+.play-button.playing {
+  background: #333;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-grow: 1;
+}
+
+.volume-icon {
+  font-size: 1rem;
+  color: #666;
+}
+
+.volume-slider {
+  flex-grow: 1;
+  height: 4px;
+  appearance: none;
+  background: #ddd;
+  border-radius: 2px;
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d10014;
+  cursor: pointer;
+}
+
+.music-note {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 0.5rem;
+  text-align: center;
 }

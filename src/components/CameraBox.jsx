@@ -272,7 +272,7 @@ const CameraBox = ({ onCapture, photoCount = 0, onReset }) => {
           onClick={handleSnapClick} 
           disabled={isAutoCapturing}
         >
-          {photoCount >= 4 ? 'RESET & TAKE PHOTO' : 'TAKE A PHOTO'}
+          {photoCount >= 4 ? 'TAKE PHOTO' : 'TAKE A PHOTO'}
         </button>
         <button 
           className={`auto-capture-button ${isAutoCapturing ? 'active' : ''}`}
