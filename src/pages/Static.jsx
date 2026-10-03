@@ -55,6 +55,21 @@ export function Privacy() {
         your account in Settings permanently removes your account and every saved strip.
       </p>
       <p>Display preferences (theme, camera settings, favorite templates) stay in your browser on this device.</p>
+      <h2>Usage analytics</h2>
+      <p>
+        To understand how PhotoBooth is used, we record simple events such as “page viewed”, “photo captured” or
+        “strip downloaded”, together with the page path and small details like the template name. Each browser gets a
+        random identifier (not linked to your name or email), and if you’re logged in the event is linked to your
+        account id. We never record photo contents, passwords or payment details, and we don’t use cookies or
+        third-party trackers. Analytics is off if your browser sends “Do Not Track” or “Global Privacy Control”, and
+        you can switch it off any time in Settings → Preferences.
+      </p>
+      <h2>Payments</h2>
+      <p>
+        Premium subscriptions are processed by Stripe. Your card details go directly to Stripe — PhotoBooth never sees
+        or stores them. We keep only your subscription status, plan and billing dates so we know which features to
+        unlock.
+      </p>
       <h2>Fonts</h2>
       <p>Typefaces are loaded from Google Fonts, which may receive your IP address as part of the request.</p>
     </StaticPage>

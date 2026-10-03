@@ -3,16 +3,31 @@ import Icon from '../common/Icon';
 import { FavoriteButton, Sparkle, DoodleHeart } from '../common/misc';
 import { Skeleton } from '../common/misc';
 import { renderStrip } from '../../templates/render';
+import PremiumBadge from '../billing/PremiumBadge';
 
 /** Real-time rendered strip with action buttons. Reports the rendered URL via onRendered. */
-export default function StripPreview({ template, layout, photos, aspect, onRendered, actions, favorite, onFavorite, busyAction }) {
+export default function StripPreview({
+  template,
+  layout,
+  photos,
+  aspect,
+  filter = 'auto',
+  onRendered,
+  actions,
+  favorite,
+  onFavorite,
+  busyAction,
+  hd,
+  hdLocked,
+  onToggleHd,
+}) {
   const [url, setUrl] = useState(null);
   const [rendering, setRendering] = useState(true);
 
   useEffect(() => {
     let alive = true;
     setRendering(true);
-    renderStrip(template, { photos, aspect, layout, scale: 0.6 })
+    renderStrip(template, { photos, aspect, layout, filter, scale: 0.6 })
       .then((canvas) => {
         if (!alive) return;
         const u = canvas.toDataURL('image/jpeg', 0.9);
@@ -24,7 +39,7 @@ export default function StripPreview({ template, layout, photos, aspect, onRende
     return () => {
       alive = false;
     };
-  }, [template, layout, photos, aspect, onRendered]);
+  }, [template, layout, photos, aspect, filter, onRendered]);
 
   const count = photos.filter(Boolean).length;
 
@@ -80,6 +95,24 @@ export default function StripPreview({ template, layout, photos, aspect, onRende
           </button>
         ))}
       </div>
+
+      {onToggleHd && (
+        <label className={`hd-toggle${hdLocked ? ' is-locked' : ''}`}>
+          <span>
+            <strong>HD download</strong>
+            <small>2× resolution for printing</small>
+          </span>
+          {hdLocked && <PremiumBadge locked compact />}
+          <input
+            type="checkbox"
+            role="switch"
+            className="switch"
+            checked={!!hd && !hdLocked}
+            onChange={(e) => onToggleHd(e.target.checked)}
+            aria-label="HD download, 2× resolution"
+          />
+        </label>
+      )}
     </section>
   );
 }

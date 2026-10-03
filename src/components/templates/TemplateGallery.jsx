@@ -5,11 +5,16 @@ import Icon from '../common/Icon';
 import { EmptyState } from '../common/misc';
 import Button from '../common/Button';
 import { CATEGORIES, TEMPLATES } from '../../templates/data';
+import { track } from '../../lib/analytics';
 
 const PAGE_SIZE = 10;
 
 /** Filterable, paginated grid of templates. */
-export default function TemplateGallery({ query = '', category, onCategory, favorites, onToggleFavorite, onUse, only }) {
+export default function TemplateGallery({ query = '', category, onCategory, favorites, onToggleFavorite, onUse: onUseProp, only }) {
+  const onUse = (id) => {
+    track('template_selected', { template: id, source: 'gallery' });
+    onUseProp(id);
+  };
   const [page, setPage] = useState(1);
   const [previewing, setPreviewing] = useState(null);
 

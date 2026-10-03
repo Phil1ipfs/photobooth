@@ -11,6 +11,7 @@ export const MARKETING_NAV = [
   { to: '/#features', label: 'Features', match: '#features' },
   { to: '/#templates', label: 'Templates', match: '#templates' },
   { to: '/#about', label: 'About', match: '#about' },
+  { to: '/pricing', label: 'Pricing', match: null },
 ];
 
 /** Marketing site header (landing, legal pages). */
@@ -39,7 +40,7 @@ export default function Header() {
               key={item.label}
               to={item.to}
               className="site-nav-link"
-              aria-current={path === '/' && hash === item.match ? 'page' : undefined}
+              aria-current={(item.match === null ? path === item.to : path === '/' && hash === item.match) ? 'page' : undefined}
             >
               {item.label}
             </Link>

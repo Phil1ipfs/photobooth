@@ -13,6 +13,12 @@ import { useRouter } from '../lib/router';
 import { fileToAvatar } from '../lib/share';
 import { PASSWORD_RULES, passwordIssues, validateEmail, validateName } from '../lib/validation';
 import { ASPECTS, LAYOUTS } from '../templates/data';
+import PremiumBadge from '../components/billing/PremiumBadge';
+import { useEntitlements } from '../context/EntitlementsContext';
+import { describePlan } from '../lib/entitlements';
+import { formatPrice, getPlan } from '../config/plans';
+import { openBillingPortal } from '../lib/billing';
+import { isAnalyticsEnabled, setAnalyticsEnabled, track } from '../lib/analytics';
 
 function Section({ id, title, description, children }) {
   return (
@@ -120,7 +126,98 @@ function ProfileSection() {
   );
 }
 
+function BillingSection() {
+  const { entitlements, isPremium, isAdmin, loading } = useEntitlements();
+  const toast = useToast();
+  const [busy, setBusy] = useState(null);
+  const plan = describePlan(entitlements);
+  const billingPlan = getPlan(entitlements.billingPlan);
+  const end = entitlements.currentPeriodEnd
+    ? new Date(entitlements.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  const run = (key, fn) => async () => {
+    setBusy(key);
+    try {
+      await fn();
+    } catch (err) {
+      toast.error('Billing unavailable', err.message);
+      setBusy(null);
+    }
+  };
+
+  const statusText = {
+    active: 'Active',
+    trialing: 'Trial',
+    past_due: 'Payment failed — action needed',
+    canceled: 'Canceled',
+    unpaid: 'Unpaid',
+    incomplete: 'Incomplete',
+  }[entitlements.status];
+
+  return (
+    <Section id="billing" title="Plan & Billing" description="Your membership and payment details.">
+      <div className={`billing-card${isPremium ? ' is-premium' : ''}`} aria-busy={loading}>
+        <div className="billing-card-head">
+          <div>
+            <small>Current plan</small>
+            <strong>
+              {plan.label} {isPremium && !isAdmin && <PremiumBadge compact />}
+            </strong>
+          </div>
+          {isPremium && !isAdmin && billingPlan && (
+            <span className="billing-price">
+              {formatPrice(billingPlan.price)} / {billingPlan.interval}
+            </span>
+          )}
+        </div>
+        <p className="billing-detail">{plan.detail}</p>
+        {entitlements.status && (
+          <dl className="billing-meta">
+            <div>
+              <dt>Status</dt>
+              <dd className={`billing-status status-${entitlements.status}`}>{statusText || entitlements.status}</dd>
+            </div>
+            {end && (
+              <div>
+                <dt>{entitlements.cancelAtPeriodEnd || !isPremium ? 'Access until' : 'Next billing date'}</dt>
+                <dd>{end}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+
+      <div className="billing-actions">
+        {!isPremium && (
+          <Button icon="sparkle" to="/pricing" onClick={() => track('upgrade_clicked', { source: 'settings' })}>
+            Upgrade to Premium
+          </Button>
+        )}
+        {entitlements.hasBillingAccount && (
+          <Button variant="outline" icon="settings" loading={busy === 'portal'} onClick={run('portal', () => openBillingPortal())}>
+            Manage billing
+          </Button>
+        )}
+        {entitlements.status === 'past_due' && (
+          <Button variant="outline" icon="alert" loading={busy === 'pay'} onClick={run('pay', () => openBillingPortal('update_payment'))}>
+            Update payment method
+          </Button>
+        )}
+        {isPremium && !isAdmin && entitlements.status === 'active' && !entitlements.cancelAtPeriodEnd && (
+          <Button variant="ghost" loading={busy === 'cancel'} onClick={run('cancel', () => openBillingPortal('cancel'))}>
+            Cancel subscription
+          </Button>
+        )}
+      </div>
+      <small className="muted">Payments are handled securely by Stripe. PhotoBooth never stores your card details.</small>
+    </Section>
+  );
+}
+
 function PreferencesSection() {
+  const { canUseLayout, openUpgrade } = useEntitlements();
+  const [analyticsOn, setAnalyticsOn] = useState(isAnalyticsEnabled);
   const { prefs, setPref } = usePrefs();
   const themes = [
     { id: 'light', label: 'Light', icon: 'sun' },
@@ -165,8 +262,27 @@ function PreferencesSection() {
           icon="templates"
           label="Default photo layout"
           value={prefs.layout}
-          onChange={(v) => setPref({ layout: v })}
-          options={LAYOUTS.map((l) => ({ value: l.id, label: `${l.label} — ${l.name}` }))}
+          onChange={(v) => {
+            if (!canUseLayout(v)) {
+              openUpgrade({ feature: 'advanced_layouts', title: 'Unlock advanced layouts', description: 'Grid, editorial and comic layouts are part of Premium.' });
+              return;
+            }
+            setPref({ layout: v });
+          }}
+          options={LAYOUTS.map((l) => ({ value: l.id, label: `${l.label} — ${l.name}${canUseLayout(l) ? '' : '  ✦ Premium'}` }))}
+        />
+      </Row>
+      <Row label="Usage statistics" hint="Share anonymous usage data (no photos or personal details) to help improve PhotoBooth." htmlFor="pref-analytics">
+        <input
+          id="pref-analytics"
+          type="checkbox"
+          role="switch"
+          className="switch"
+          checked={analyticsOn}
+          onChange={(e) => {
+            setAnalyticsEnabled(e.target.checked);
+            setAnalyticsOn(e.target.checked);
+          }}
         />
       </Row>
       <Row label="Capture mode" hint="Auto fills every empty slot in one go.">
@@ -336,6 +452,7 @@ export default function Settings() {
       <PageHeader title="Settings" subtitle="Manage your profile, preferences and account." />
       <div className="settings-stack">
         <ProfileSection />
+        <BillingSection />
         <PreferencesSection />
         <AccountSection />
       </div>

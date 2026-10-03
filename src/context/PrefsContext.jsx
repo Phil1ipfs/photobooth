@@ -2,6 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID } from '../templates/data';
+import { track } from '../lib/analytics';
 
 export const DEFAULT_PREFS = {
   theme: 'light',
@@ -9,6 +10,8 @@ export const DEFAULT_PREFS = {
   mirror: true,
   flash: true,
   countdown: 3,
+  filter: 'auto',
+  hd: false,
   aspect: '4:3',
   layout: DEFAULT_LAYOUT_ID,
   cameraId: '',
@@ -65,13 +68,15 @@ export function PrefsProvider({ children }) {
   );
 
   const toggleFavoriteTemplate = useCallback(
-    (id) =>
+    (id) => {
+      track('template_favorited', { template: id, favorited: !prefs.favoriteTemplates.includes(id) });
       setPref((p) => ({
         favoriteTemplates: p.favoriteTemplates.includes(id)
           ? p.favoriteTemplates.filter((x) => x !== id)
           : [...p.favoriteTemplates, id],
-      })),
-    [setPref]
+      }));
+    },
+    [setPref, prefs.favoriteTemplates]
   );
 
   const value = useMemo(() => ({ prefs, setPref, toggleFavoriteTemplate }), [prefs, setPref, toggleFavoriteTemplate]);

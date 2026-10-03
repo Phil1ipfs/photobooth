@@ -7,6 +7,8 @@ import { Link, useRouter } from '../../lib/router';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import MusicPlayer from '../photobooth/MusicPlayer';
+import PremiumBadge from '../billing/PremiumBadge';
+import { useEntitlements } from '../../context/EntitlementsContext';
 
 export const APP_NAV = [
   { to: '/dashboard', label: 'Home', icon: 'home', auth: true },
@@ -20,6 +22,8 @@ const navTarget = (item, user) => (item.auth && !user ? `/login?next=${encodeURI
 
 function Sidebar() {
   const { user, logOut } = useAuth();
+  const { isPremium, isAdmin } = useEntitlements();
+  const nav = isAdmin ? [...APP_NAV, { to: '/admin', label: 'Analytics', icon: 'chart', auth: true }] : APP_NAV;
   const { path, navigate } = useRouter();
   const toast = useToast();
 
@@ -27,7 +31,7 @@ function Sidebar() {
     <aside className="sidebar" aria-label="Sidebar">
       <Logo to={user ? '/dashboard' : '/'} size="sm" />
       <nav className="side-nav" aria-label="App">
-        {APP_NAV.map((item) => (
+        {nav.map((item) => (
           <Link
             key={item.to}
             to={navTarget(item, user)}
@@ -48,13 +52,23 @@ function Sidebar() {
           <small>Start a new session</small>
         </span>
       </Link>
+      {user && !isPremium && (
+        <Link to="/pricing" className="side-upgrade">
+          <span className="side-upgrade-title">
+            <Icon name="sparkle" size={14} /> Go Premium
+          </span>
+          <small>Unlock every template, layout & HD downloads.</small>
+        </Link>
+      )}
       <div className="side-footer">
         {user ? (
           <>
             <Link to="/settings" className="side-user">
               <Avatar user={user} size={40} />
               <span className="side-user-text">
-                <strong>{user.name}</strong>
+                <strong>
+                  {user.name} {isPremium && !isAdmin && <PremiumBadge compact />}
+                </strong>
                 <small>{user.email}</small>
               </span>
             </Link>

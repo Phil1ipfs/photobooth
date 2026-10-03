@@ -3,8 +3,12 @@ import Icon from '../common/Icon';
 import TemplatePreview from '../templates/TemplatePreview';
 import { Link } from '../../lib/router';
 import { TEMPLATES } from '../../templates/data';
+import PremiumBadge from '../billing/PremiumBadge';
+import { templateTier } from '../../config/catalog';
+import { useEntitlements } from '../../context/EntitlementsContext';
 
 export default function TemplateSelector({ value, onChange, aspect, layout, favorites }) {
+  const { canUseTemplate } = useEntitlements();
   const [favOnly, setFavOnly] = useState(false);
   const listRef = useRef(null);
   const list = favOnly ? TEMPLATES.filter((t) => favorites.includes(t.id)) : TEMPLATES;
@@ -71,6 +75,8 @@ export default function TemplateSelector({ value, onChange, aspect, layout, favo
         <div className="tpl-select-list" role="radiogroup" aria-label="Templates" ref={listRef} onKeyDown={onKeyDown}>
           {list.map((t) => {
             const active = t.id === value;
+            const premium = templateTier(t) === 'premium';
+            const locked = premium && !canUseTemplate(t);
             return (
               <button
                 key={t.id}
@@ -80,7 +86,8 @@ export default function TemplateSelector({ value, onChange, aspect, layout, favo
                 className="tpl-option"
                 onClick={() => onChange(t.id)}
               >
-                <span className="tpl-option-thumb">
+                <span className={`tpl-option-thumb${locked ? ' is-locked' : ''}`}>
+                  {premium && <PremiumBadge compact locked={locked} className="tpl-option-badge" />}
                   <TemplatePreview template={t} aspect={aspect} layout={layout} scale={0.3} alt="" />
                   {active && (
                     <span className="tpl-check" aria-hidden="true">

@@ -88,6 +88,19 @@ function filtered(img, filter) {
       px[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
       px[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
       px[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+    } else if (filter === 'warm') {
+      px[i] = Math.min(255, r * 1.1 + 12);
+      px[i + 1] = Math.min(255, g * 1.02 + 4);
+      px[i + 2] = Math.max(0, b * 0.86);
+    } else if (filter === 'cool') {
+      px[i] = Math.max(0, r * 0.88);
+      px[i + 1] = Math.min(255, g * 1.0 + 4);
+      px[i + 2] = Math.min(255, b * 1.12 + 10);
+    } else if (filter === 'fade') {
+      // lifted blacks, softened contrast, slight warm cast
+      px[i] = Math.min(255, r * 0.78 + 50);
+      px[i + 1] = Math.min(255, g * 0.76 + 44);
+      px[i + 2] = Math.min(255, b * 0.72 + 42);
     } else {
       let l = 0.299 * r + 0.587 * g + 0.114 * b;
       if (filter === 'noir') l = Math.max(0, Math.min(255, (l - 128) * 1.25 + 128));
@@ -381,7 +394,9 @@ function drawSlot(ctx, t, r, img, i, opts) {
   ctx.save();
   photoPath(ctx, f, r);
   ctx.clip();
-  if (img) drawCover(ctx, filtered(img, t.photo?.filter), r.x, r.y, r.w, r.h);
+  // User-chosen filter: 'auto' keeps the template's own, 'none' removes it.
+  const filter = !opts.filter || opts.filter === 'auto' ? t.photo?.filter : opts.filter === 'none' ? null : opts.filter;
+  if (img) drawCover(ctx, filtered(img, filter), r.x, r.y, r.w, r.h);
   else if (opts.placeholders) drawPlaceholder(ctx, r, t.placeholder || DEFAULT_PLACEHOLDER, i);
   else {
     ctx.fillStyle = t.emptyColor || 'rgba(0,0,0,0.12)';
@@ -465,10 +480,10 @@ const DEFAULT_PLACEHOLDER = { bg: ['#e7dcd8', '#cdbcb7'], figure: 'rgba(255,255,
 /**
  * Render a template to a new canvas.
  * @param {object} template  Template definition from templates/data.js
- * @param {object} options   { photos: (string|null)[], aspect, layout, scale, date, placeholders }
+ * @param {object} options   { photos: (string|null)[], aspect, layout, scale, date, placeholders, filter }
  */
 export async function renderStrip(template, options = {}) {
-  const { photos = [], aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true } = options;
+  const { photos = [], aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto' } = options;
   await ensureFonts();
   const images = await Promise.all(
     Array.from({ length: layout.photoCount }, (_, i) => (photos[i] ? loadImage(photos[i]).catch(() => null) : null))
@@ -485,7 +500,7 @@ export async function renderStrip(template, options = {}) {
   drawBackground(ctx, template, W, H);
   const decor = template.decor || [];
   decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
-  slots.forEach((r, i) => drawSlot(ctx, template, r, images[i], i, { placeholders }));
+  slots.forEach((r, i) => drawSlot(ctx, template, r, images[i], i, { placeholders, filter }));
   decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
   (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date));
   return canvas;

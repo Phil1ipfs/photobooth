@@ -8,6 +8,7 @@ import './styles/landing.css';
 import './styles/auth.css';
 import './styles/app.css';
 import './styles/booth.css';
+import './styles/premium.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

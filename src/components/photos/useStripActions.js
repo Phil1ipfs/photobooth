@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useStrips } from '../../context/StripsContext';
 import { useToast } from '../../context/ToastContext';
 import { downloadBlob, printBlob, shareBlob, stripFileName } from '../../lib/share';
+import { track } from '../../lib/analytics';
 
 /** Actions on saved strips (My Photos, Dashboard, Favorites). */
 export default function useStripActions() {
@@ -23,6 +24,7 @@ export default function useStripActions() {
     (s) =>
       withBlob(s, (blob) => {
         downloadBlob(blob, stripFileName(s.templateName, new Date(s.createdAt)));
+        track('photostrip_downloaded', { template: s.templateId, layout: s.layoutId || 'strip-1x4', source: 'my_photos' });
         toast.success('Downloaded!', 'Your photo strip was saved to your device.');
       }),
     [withBlob, toast]

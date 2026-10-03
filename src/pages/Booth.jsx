@@ -16,7 +16,9 @@ import { useAuth } from '../context/AuthContext';
 import { usePrefs } from '../context/PrefsContext';
 import { useStrips } from '../context/StripsContext';
 import { useToast } from '../context/ToastContext';
-import { ASPECTS, TEMPLATES, getLayout, getTemplate } from '../templates/data';
+import { useEntitlements } from '../context/EntitlementsContext';
+import { track } from '../lib/analytics';
+import { ASPECTS, DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID, TEMPLATES, getLayout, getTemplate } from '../templates/data';
 import { renderStrip } from '../templates/render';
 import { canvasToBlob, downloadBlob, printBlob, shareBlob, stripFileName } from '../lib/share';
 import { playBeep, playShutter } from '../lib/sfx';
@@ -41,6 +43,7 @@ export default function Booth() {
   const strips = useStrips();
   const toast = useToast();
   const { query, navigate } = useRouter();
+  const ent = useEntitlements();
 
   // ----- Session state (restored if the user left to log in) -----
   const restored = useRef(readSession());
@@ -70,10 +73,20 @@ export default function Booth() {
   // `userLayoutRef` remembers the user's own layout while a template-applied one is
   // active, so switching back to a regular template restores it.
   const userLayoutRef = useRef(null);
+  const { canUseTemplate, openUpgrade } = ent;
   const selectTemplate = useCallback(
     (id) => {
-      setTemplateId(id);
       const t = getTemplate(id);
+      if (!canUseTemplate(t)) {
+        openUpgrade({
+          feature: 'premium_templates',
+          title: `Unlock “${t.name}”`,
+          description: `${t.name} is a Premium template. Upgrade to use it — plus every other Premium look.`,
+        });
+        return;
+      }
+      track('template_selected', { template: id, source: 'booth' });
+      setTemplateId(id);
       if (t.layoutId) {
         if (userLayoutRef.current === null) userLayoutRef.current = prefs.layout;
         setPref({ layout: t.layoutId });
@@ -82,7 +95,7 @@ export default function Booth() {
         userLayoutRef.current = null;
       }
     },
-    [setPref, prefs.layout]
+    [setPref, prefs.layout, canUseTemplate, openUpgrade]
   );
 
   // Arriving from the gallery with ?template=… applies that template's layout too.
@@ -127,6 +140,32 @@ export default function Booth() {
 
   // Stop a running sequence when leaving the page.
   useEffect(() => () => void runRef.current++, []);
+
+  useEffect(() => {
+    track('photobooth_opened');
+  }, []);
+
+  // Once the plan is known, fall back from anything this account can't use
+  // (e.g. a Premium template opened by link, or settings kept after a downgrade).
+  const entReady = ent.ready;
+  useEffect(() => {
+    if (!entReady) return;
+    if (!ent.canUseTemplate(template)) {
+      if (query.get('template') === template.id) {
+        ent.openUpgrade({
+          feature: 'premium_templates',
+          title: `Unlock “${template.name}”`,
+          description: `${template.name} is a Premium template. We’ve switched you to a free template for now.`,
+        });
+      }
+      userLayoutRef.current = null;
+      setTemplateId(DEFAULT_TEMPLATE_ID);
+    }
+    if (!ent.canUseLayout(prefs.layout)) setPref({ layout: DEFAULT_LAYOUT_ID });
+    if (!ent.canUseFilter(prefs.filter || 'auto')) setPref({ filter: 'auto' });
+    if (prefs.hd && !ent.canUseFeature('hd_export')) setPref({ hd: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entReady, ent.entitlements, template.id, prefs.layout, prefs.filter]);
 
   // ----- Capture -----
   const triggerFlash = useCallback(() => {
@@ -186,6 +225,7 @@ export default function Booth() {
         n[slot] = shot;
         return n;
       });
+      track('photo_captured', { template: template.id, layout: layout.id });
       await wait(targets.length > 1 ? 750 : 200);
     }
     if (runRef.current !== run) return;
@@ -193,7 +233,12 @@ export default function Booth() {
     const after = photosRef.current;
     const nextEmpty = after.findIndex((p) => !p);
     if (nextEmpty >= 0) setSelected(nextEmpty);
-    else setResultOpen(true);
+    else {
+      setResultOpen(true);
+      const stripMeta = { template: template.id, layout: layout.id, filter: prefs.filter || 'auto' };
+      track('photostrip_created', stripMeta);
+      track('template_used', stripMeta);
+    }
   };
 
   // Keyboard shortcut: Space takes a photo (when not typing / on a control).
@@ -224,10 +269,12 @@ export default function Booth() {
   };
 
   // ----- Export actions -----
-  const exportBlob = async () => {
-    const canvas = await renderStrip(template, { photos, aspect, layout, scale: 1 });
+  const hdAllowed = ent.canUseFeature('hd_export');
+  const exportBlob = async ({ scale = 1 } = {}) => {
+    const canvas = await renderStrip(template, { photos, aspect, layout, filter: prefs.filter, scale });
     return { blob: await canvasToBlob(canvas, 'image/png'), width: canvas.width, height: canvas.height };
   };
+  const meta = () => ({ template: template.id, layout: layout.id });
 
   const ensurePhotos = () => {
     if (filled === 0) {
@@ -250,10 +297,24 @@ export default function Booth() {
   };
 
   const download = withAction('download', async () => {
-    const { blob } = await exportBlob();
+    const hd = prefs.hd && hdAllowed;
+    const { blob } = await exportBlob({ scale: hd ? 2 : 1 });
     downloadBlob(blob, stripFileName(template.name));
-    toast.success('Downloaded!', 'Your photo strip was saved to your device.');
+    track('photostrip_downloaded', { ...meta(), source: 'booth', hd });
+    toast.success(hd ? 'Downloaded in HD!' : 'Downloaded!', 'Your photo strip was saved to your device.');
   });
+
+  const toggleHd = (on) => {
+    if (on && !hdAllowed) {
+      openUpgrade({
+        feature: 'hd_export',
+        title: 'Unlock HD downloads',
+        description: 'Premium downloads are rendered at 2× resolution — crisp enough to print.',
+      });
+      return;
+    }
+    setPref({ hd: on });
+  };
 
   const save = async (favorite = false) => {
     if (!user) {
@@ -263,7 +324,22 @@ export default function Booth() {
     }
     if (saved) return saved;
     const { blob, width, height } = await exportBlob();
-    const rec = await strips.save({ blob, width, height, templateId: template.id, templateName: template.name, layoutId: layout.id, favorite });
+    let rec;
+    try {
+      rec = await strips.save({ blob, width, height, templateId: template.id, templateName: template.name, layoutId: layout.id, favorite });
+    } catch (err) {
+      // The database refuses Premium templates/layouts for free accounts.
+      if (/premium_required/i.test(err.message)) {
+        openUpgrade({
+          feature: 'premium_templates',
+          title: 'Saving this strip needs Premium',
+          description: 'This strip uses a Premium template or layout. Upgrade to save it to My Photos — you can still download it.',
+        });
+        return null;
+      }
+      throw err;
+    }
+    track('photostrip_saved', { ...meta(), favorite });
     const s = { id: rec.id, favorite };
     setSaved(s);
     return s;
@@ -408,6 +484,10 @@ export default function Booth() {
             layout={layout}
             photos={photos}
             aspect={aspect}
+            filter={prefs.filter}
+            hd={prefs.hd}
+            hdLocked={!hdAllowed}
+            onToggleHd={toggleHd}
             onRendered={stableOnRendered}
             actions={actions}
             favorite={!!saved?.favorite}
