@@ -27,7 +27,8 @@ import { playBeep, playShutter } from '../lib/sfx';
 
 const SESSION_KEY = 'pb:booth-session';
 const empty = (n) => Array(n).fill(null);
-// Resize a photo list to a layout's slot count, keeping the photos already taken.
+// The photos a layout shows: the first `n` captured photos (empty slots → null).
+// Read-only view — never written back, so switching layouts can't lose photos.
 const fitPhotos = (photos, n) => Array.from({ length: n }, (_, i) => photos[i] || null);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -51,7 +52,18 @@ export default function Booth() {
   const restored = useRef(readSession());
   const layout = getLayout(prefs.layout);
   const slotCount = layout.photoCount;
-  const [photos, setPhotos] = useState(() => fitPhotos(restored.current?.photos || [], slotCount));
+  // Every photo taken for this strip, by slot index. Independent of the layout:
+  // a layout with fewer slots only *shows* fewer (see `photos` below).
+  const [captured, setCaptured] = useState(() => restored.current?.photos || []);
+  const photos = useMemo(() => fitPhotos(captured, slotCount), [captured, slotCount]);
+  /** Set (or clear, with null) the captured photo in one slot. */
+  const setCapturedAt = useCallback((slot, shot) => {
+    setCaptured((list) => {
+      const next = Array.from({ length: Math.max(list.length, slot + 1) }, (_, i) => list[i] || null);
+      next[slot] = shot;
+      return next;
+    });
+  }, []);
   const [templateId, setTemplateId] = useState(() => {
     const fromQuery = query.get('template');
     if (fromQuery && TEMPLATES.some((t) => t.id === fromQuery)) return fromQuery;
@@ -144,11 +156,11 @@ export default function Booth() {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ photos, templateId, creation }));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ photos: captured, templateId, creation }));
     } catch {
       /* storage full — session restore is best-effort */
     }
-  }, [photos, templateId, creation]);
+  }, [captured, templateId, creation]);
 
   useEffect(() => {
     if (prefs.lastTemplate !== templateId) setPref({ lastTemplate: templateId });
@@ -157,12 +169,10 @@ export default function Booth() {
   // Any change to the composition means it's no longer the saved version.
   useEffect(() => setSaved(null), [photos, templateId, prefs.aspect, prefs.layout]);
 
-  // Layout changed: resize the slots (keeping existing photos) and jump to the first empty one.
+  // Layout changed: only move the selection to the first empty visible slot.
+  // Captured photos are left untouched (switching back shows them all again).
   useEffect(() => {
-    if (photosRef.current.length === slotCount) return;
-    const next = fitPhotos(photosRef.current, slotCount);
-    const firstEmpty = next.findIndex((x) => !x);
-    setPhotos(next);
+    const firstEmpty = photosRef.current.findIndex((x) => !x);
     setSelected(firstEmpty >= 0 ? firstEmpty : 0);
   }, [slotCount]);
 
@@ -251,7 +261,7 @@ export default function Booth() {
     } else if (freshStrip) {
       // A full strip: start a fresh one (matches the original "take another" behaviour).
       current = empty(slotCount);
-      setPhotos(empty(slotCount));
+      setCaptured([]);
       targets = current.map((_, i) => i);
     } else {
       targets = [selected, ...current.map((p, i) => (!p && i !== selected ? i : -1)).filter((i) => i >= 0)];
@@ -275,11 +285,7 @@ export default function Booth() {
       }
       triggerFlash();
       if (prefs.sound) playShutter();
-      setPhotos((p) => {
-        const n = [...p];
-        n[slot] = shot;
-        return n;
-      });
+      setCapturedAt(slot, shot);
       track('photo_captured', { template: template.id, layout: layout.id });
       await wait(targets.length > 1 ? 750 : 200);
     }
@@ -314,13 +320,13 @@ export default function Booth() {
   const clearPhotos = () => {
     stop();
     gate.beginStrip(); // an exported strip is done; an unexported draft is reused
-    setPhotos(empty(slotCount));
+    setCaptured([]);
     setSelected(0);
     setResultOpen(false);
   };
 
   const removePhoto = (i) => {
-    setPhotos((p) => p.map((x, k) => (k === i ? null : x)));
+    setCapturedAt(i, null);
     setSelected(i);
   };
 
