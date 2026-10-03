@@ -81,6 +81,13 @@ export function Privacy() {
         PhotoBooth never sees or stores them. We keep only your plan, the payment reference, amount and the date your
         Premium ends so we know which features to unlock.
       </p>
+      <h2>Your consent</h2>
+      <p>
+        When you create an account you agree to these Terms and this Privacy Policy, and we record that agreement (the
+        policy version and the date) with your account. You can withdraw your consent at any time by deleting your
+        account in Settings — this permanently removes your account details and every saved strip. If we change these
+        documents in a meaningful way, we’ll ask you to agree again.
+      </p>
       <h2>Fonts</h2>
       <p>Typefaces are loaded from Google Fonts, which may receive your IP address as part of the request.</p>
     </StaticPage>

@@ -3,6 +3,8 @@ import Input, { PasswordInput } from '../common/Input';
 import Button from '../common/Button';
 import Icon from '../common/Icon';
 import SocialButtons from './SocialButtons';
+import TermsCheckbox from './TermsCheckbox';
+import { TERMS_VERSION } from '../../config/legal';
 import { useAuth } from '../../context/AuthContext';
 import { PASSWORD_RULES, validateEmail, validateName, validateNewPassword } from '../../lib/validation';
 
@@ -13,6 +15,12 @@ export default function SignupForm({ onSuccess, next }) {
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
   const [touchedPw, setTouchedPw] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const termsError = 'Please agree to the Terms of Use and Privacy Policy to create an account.';
+  const setAgree = (on) => {
+    setAgreed(on);
+    if (on && errors.terms) setErrors((er) => ({ ...er, terms: '' }));
+  };
 
   const set = (key) => (e) => {
     setValues((s) => ({ ...s, [key]: e.target.value }));
@@ -31,6 +39,7 @@ export default function SignupForm({ onSuccess, next }) {
         : values.confirm !== values.password
           ? 'Passwords don’t match.'
           : '',
+      terms: agreed ? '' : termsError,
     };
     Object.keys(er).forEach((k) => !er[k] && delete er[k]);
     setErrors(er);
@@ -43,7 +52,7 @@ export default function SignupForm({ onSuccess, next }) {
     if (loading || !validate()) return;
     setLoading(true);
     try {
-      const result = await signUp(values);
+      const result = await signUp({ ...values, termsVersion: TERMS_VERSION });
       onSuccess(result);
     } catch (err) {
       if (err.field) setErrors({ [err.field]: err.message });
@@ -114,11 +123,21 @@ export default function SignupForm({ onSuccess, next }) {
           onChange={set('confirm')}
           error={errors.confirm}
         />
+        <TermsCheckbox checked={agreed} onChange={setAgree} error={errors.terms} />
         <Button type="submit" size="lg" block loading={loading} iconRight="arrow-right">
           {loading ? 'Creating account…' : 'Sign Up'}
         </Button>
       </form>
-      <SocialButtons next={next} />
+      <SocialButtons
+        next={next}
+        consent={{
+          given: agreed,
+          onMissing: () => {
+            setErrors((er) => ({ ...er, terms: termsError }));
+            document.getElementById('terms-agree')?.focus();
+          },
+        }}
+      />
     </>
   );
 }

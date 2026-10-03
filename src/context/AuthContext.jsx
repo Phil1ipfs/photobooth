@@ -98,6 +98,11 @@ export function AuthProvider({ children }) {
     [user]
   );
 
+  const acceptTerms = useCallback(async (version) => {
+    await auth.acceptTerms(version);
+    setUser((u) => (u ? { ...u, termsVersion: version } : u));
+  }, []);
+
   const setNewPassword = useCallback(async (password) => {
     const u = await auth.setNewPassword(password);
     setRecovering(false);
@@ -118,10 +123,11 @@ export function AuthProvider({ children }) {
       changePassword,
       deleteAccount,
       setNewPassword,
+      acceptTerms,
       requestPasswordReset: auth.requestPasswordReset,
       signInWithProvider: auth.signInWithProvider,
     }),
-    [user, ready, recovering, logIn, signUp, logOut, updateProfile, changePassword, deleteAccount, setNewPassword]
+    [user, ready, recovering, logIn, signUp, logOut, updateProfile, changePassword, deleteAccount, setNewPassword, acceptTerms]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

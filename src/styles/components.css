@@ -847,3 +847,44 @@
   max-width: 100%;
   object-fit: contain;
 }
+
+/* Terms agreement checkbox (sign up / consent prompt) */
+.terms-check .check {
+  align-items: flex-start;
+  line-height: 1.45;
+  user-select: auto;
+}
+.terms-check .check input {
+  flex: none;
+  margin-top: 1px;
+}
+.terms-check .check a {
+  color: var(--primary-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.terms-check.has-error .check input {
+  border-color: var(--danger, #d33);
+}
+.terms-check .field-error {
+  margin: 6px 0 0 28px;
+}
+.consent-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.consent-body ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.consent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -54,7 +54,7 @@ async function toAppUser(authUser) {
   if (!authUser) return null;
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, avatar, created_at')
+    .select('name, avatar, created_at, terms_version')
     .eq('id', authUser.id)
     .maybeSingle();
   const meta = authUser.user_metadata || {};
@@ -64,6 +64,8 @@ async function toAppUser(authUser) {
     name: profile?.name || meta.name || meta.full_name || authUser.email?.split('@')[0] || 'Friend',
     avatar: profile?.avatar || meta.avatar_url || null,
     createdAt: profile?.created_at || authUser.created_at,
+    // Policy version this account agreed to (null = not yet; undefined = unknown).
+    termsVersion: profile ? profile.terms_version || null : undefined,
   };
 }
 
@@ -94,18 +96,20 @@ export function setRemember(remember) {
  * Create an account. Returns { user, needsConfirmation }. When the Supabase
  * project requires email confirmation, `user` is null until the link is clicked.
  */
-export async function signUp({ name, email, password }) {
+export async function signUp({ name, email, password, termsVersion }) {
   const sb = client();
   const cleanEmail = normalizeEmail(email);
   if (!name.trim()) throw new AuthError('Please enter your name.', 'name');
   if (!EMAIL_RE.test(cleanEmail)) throw new AuthError('Please enter a valid email address.', 'email');
   if (passwordIssues(password).length) throw new AuthError('Please choose a stronger password.', 'password');
+  if (!termsVersion) throw new AuthError('Please agree to the Terms of Use and Privacy Policy.', 'terms');
 
   setRemember(true);
   const { data, error } = await sb.auth.signUp({
     email: cleanEmail,
     password,
-    options: { data: { name: name.trim() }, emailRedirectTo: `${window.location.origin}/dashboard` },
+    // terms_version is stored with the new account (with server time) by handle_new_user().
+    options: { data: { name: name.trim(), terms_version: termsVersion }, emailRedirectTo: `${window.location.origin}/dashboard` },
   });
   if (error) throw friendly(error);
   // Supabase hides "already registered" behind an obfuscated user with no identities.
@@ -243,4 +247,10 @@ export async function deleteAccount(userId, password) {
   const { error } = await sb.rpc('delete_own_account');
   if (error) throw friendly(error);
   await sb.auth.signOut();
+}
+
+/** Record that the signed-in user agrees to a Terms/Privacy version (server-timestamped). */
+export async function acceptTerms(version) {
+  const { error } = await client().rpc('accept_terms', { p_version: version });
+  if (error) throw friendly(error);
 }

@@ -20,6 +20,7 @@ import { NotFound, Privacy, Terms } from './pages/Static';
 import Pricing from './pages/Pricing';
 import BillingSuccess from './pages/BillingSuccess';
 import Admin from './pages/Admin';
+import ConsentGate from './components/auth/ConsentGate';
 
 // path → [component, access] where access is 'public' | 'auth' (signed-in only) | 'guest' (signed-out only)
 const ROUTES = {
@@ -70,6 +71,7 @@ export default function App() {
             <StripsProvider>
               <MusicProvider>
                 <Routes />
+                <ConsentGate />
               </MusicProvider>
             </StripsProvider>
             </EntitlementsProvider>
