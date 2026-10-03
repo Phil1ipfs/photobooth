@@ -2,7 +2,7 @@
 // and checks every Premium id refers to a real template / layout.
 import fs from 'fs';
 import path from 'path';
-import { PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES } from './catalog';
+import { PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES, FREE_SAVED_STRIP_LIMIT } from './catalog';
 import { LAYOUTS, TEMPLATES } from '../templates/data';
 import { canUseFeature, canUseLayout, canUseTemplate, canUseFilter, isPremium, isAdmin } from '../lib/entitlements';
 
@@ -54,4 +54,11 @@ test('entitlements: free vs premium vs admin', () => {
   expect(canUseFeature(undefined, 'hd_export')).toBe(false); // logged out = free
   expect(Object.keys(FEATURES).length).toBeGreaterThan(0);
   expect(FILTERS.some((f) => f.tier === 'free')).toBe(true);
+});
+
+test('free save limit matches the database trigger', () => {
+  const trigger = fs.readFileSync(path.join(__dirname, '../../supabase/migrations/004_free_save_limit.sql'), 'utf8');
+  expect(Number(trigger.match(/free_limit constant int := (\d+);/)[1])).toBe(FREE_SAVED_STRIP_LIMIT);
+  expect(canUseFeature({ plan: 'free' }, 'unlimited_saves')).toBe(false);
+  expect(canUseFeature({ plan: 'premium' }, 'unlimited_saves')).toBe(true);
 });

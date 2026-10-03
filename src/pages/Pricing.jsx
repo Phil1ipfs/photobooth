@@ -10,7 +10,7 @@ import { useEntitlements } from '../context/EntitlementsContext';
 import { useToast } from '../context/ToastContext';
 import { useRouter } from '../lib/router';
 import { TIERS, enabledPlans, formatPrice } from '../config/plans';
-import { PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
+import { FREE_SAVED_STRIP_LIMIT, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
 import { LAYOUTS, TEMPLATES } from '../templates/data';
 import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
@@ -19,8 +19,8 @@ import { track } from '../lib/analytics';
 const freeTemplates = TEMPLATES.length - PREMIUM_TEMPLATE_IDS.length;
 const COMPARE = [
   { label: 'Live photobooth, countdown & flash', free: true, premium: true },
-  { label: 'Download, save, share & print strips', free: true, premium: true },
-  { label: 'Favorites & My Photos gallery', free: true, premium: true },
+  { label: 'Download, share & print strips', free: true, premium: true },
+  { label: 'Saved strips in My Photos', free: `Up to ${FREE_SAVED_STRIP_LIMIT}`, premium: 'Unlimited' },
   { label: 'Templates', free: `${freeTemplates}`, premium: `All ${TEMPLATES.length}` },
   { label: 'Layouts', free: '1 × 4, 1 × 2', premium: `All ${LAYOUTS.length}` },
   { label: 'Photo filters', free: 'Original, B&W', premium: '+ Sepia, Warm, Cool, Faded' },

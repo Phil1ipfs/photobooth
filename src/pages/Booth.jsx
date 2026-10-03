@@ -17,6 +17,7 @@ import { usePrefs } from '../context/PrefsContext';
 import { useStrips } from '../context/StripsContext';
 import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
+import { FREE_SAVED_STRIP_LIMIT } from '../config/catalog';
 import { track } from '../lib/analytics';
 import { ASPECTS, DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID, TEMPLATES, getLayout, getTemplate } from '../templates/data';
 import { renderStrip } from '../templates/render';
@@ -323,11 +324,28 @@ export default function Booth() {
       return null;
     }
     if (saved) return saved;
+    // Free accounts keep a limited number of strips (the database enforces it too).
+    if (ent.ready && !ent.canUseFeature('unlimited_saves') && strips.strips.length >= FREE_SAVED_STRIP_LIMIT) {
+      openUpgrade({
+          feature: 'unlimited_saves',
+          title: 'Your My Photos is full',
+          description: `Free accounts can keep ${FREE_SAVED_STRIP_LIMIT} saved strips. Upgrade for unlimited saves — or delete one in My Photos. You can still download this strip.`,
+        });
+      return null;
+    }
     const { blob, width, height } = await exportBlob();
     let rec;
     try {
       rec = await strips.save({ blob, width, height, templateId: template.id, templateName: template.name, layoutId: layout.id, favorite });
     } catch (err) {
+      if (/strip_limit_reached/i.test(err.message)) {
+        openUpgrade({
+          feature: 'unlimited_saves',
+          title: 'Your My Photos is full',
+          description: `Free accounts can keep ${FREE_SAVED_STRIP_LIMIT} saved strips. Upgrade for unlimited saves — or delete one in My Photos. You can still download this strip.`,
+        });
+        return null;
+      }
       // The database refuses Premium templates/layouts for free accounts.
       if (/premium_required/i.test(err.message)) {
         openUpgrade({

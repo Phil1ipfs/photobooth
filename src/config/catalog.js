@@ -45,6 +45,10 @@ export const FILTERS = [
   { id: 'fade', label: 'Faded film', tier: 'premium' },
 ];
 
+// Free accounts can keep this many strips in My Photos (Premium: unlimited).
+// Enforced in the database by supabase/migrations/004_free_save_limit.sql.
+export const FREE_SAVED_STRIP_LIMIT = 2;
+
 /**
  * Feature catalogue. `tier` is the minimum plan; the plans in plans.js list the
  * features they include. Add a feature here, gate it with canUseFeature().
@@ -54,6 +58,7 @@ export const FEATURES = {
   advanced_layouts: { label: 'Advanced layouts (2 × 2, 2 × 3, 3 × 2, editorial, comic)', tier: 'premium' },
   premium_filters: { label: 'Premium photo filters', tier: 'premium' },
   hd_export: { label: 'HD downloads (2× resolution)', tier: 'premium' },
+  unlimited_saves: { label: 'Unlimited saved strips in My Photos', tier: 'premium' },
   admin_analytics: { label: 'Admin analytics', tier: 'admin' },
 };
 
