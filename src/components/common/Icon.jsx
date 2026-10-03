@@ -94,11 +94,3 @@ export function GoogleIcon({ size = 18 }) {
   );
 }
 
-export function FacebookIcon({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="12" fill="#1877F2" />
-      <path fill="#fff" d="M15.1 15.5 15.6 12.4h-3v-2c0-.8.4-1.7 1.7-1.7h1.4V6.1s-1.2-.2-2.4-.2c-2.5 0-4.1 1.5-4.1 4.2v2.3H6.5v3.1h2.7V24h3.4v-8.5h2.5Z" />
-    </svg>
-  );
-}

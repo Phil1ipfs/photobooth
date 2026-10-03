@@ -142,7 +142,7 @@ async function providerEnabled(provider) {
   return Boolean(settings.external?.[provider]);
 }
 
-/** Google / Facebook. Redirects away; the session is picked up on return. */
+/** OAuth sign-in (Google). Redirects away; the session is picked up on return. */
 export async function signInWithProvider(provider, next = '/dashboard') {
   const sb = client();
   // signInWithOAuth redirects even when the provider is off, which would land the

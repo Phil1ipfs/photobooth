@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { GoogleIcon, FacebookIcon } from '../common/Icon';
+import { GoogleIcon } from '../common/Icon';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 /**
- * Google / Facebook sign-in through Supabase OAuth. Each provider must be
+ * Google sign-in through Supabase OAuth. The provider must be
  * enabled in Supabase → Authentication → Providers; until then Supabase
  * returns an error and we show it as a toast.
  */
@@ -32,10 +32,6 @@ export default function SocialButtons({ next = '/dashboard' }) {
         <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('google', 'Google')} disabled={!!busy}>
           {busy === 'google' ? <span className="btn-spinner" aria-hidden="true" /> : <GoogleIcon />}
           Continue with Google
-        </button>
-        <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('facebook', 'Facebook')} disabled={!!busy}>
-          {busy === 'facebook' ? <span className="btn-spinner" aria-hidden="true" /> : <FacebookIcon />}
-          Continue with Facebook
         </button>
       </div>
     </>
