@@ -1,0 +1,113 @@
+/* Design tokens — PhotoBooth "Making Memories" */
+:root {
+  /* Color */
+  --bg: #FFF9F6;
+  --bg-soft: #FBF0ED;
+  --surface: #FFFFFF;
+  --surface-2: #FFF7F5;
+  --surface-sunk: #F8EEEC;
+  --primary: #8F1838;
+  --primary-hover: #74132D;
+  --primary-ink: #8F1838;
+  --on-primary: #FFFFFF;
+  --pink: #F7DDE2;
+  --pink-soft: #FCEDF0;
+  --accent: #DFA1AE;
+  --text: #351D24;
+  --text-2: #806B70;
+  --text-3: #A8959A;
+  --border: #EBDDE0;
+  --border-strong: #DCC6CB;
+  --success: #2F9E6B;
+  --warning: #C98316;
+  --danger: #C2334D;
+  --overlay: rgba(43, 18, 26, 0.45);
+  --camera-bg: #2B1F21;
+
+  /* Type */
+  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-script: 'Great Vibes', 'Brush Script MT', cursive;
+  --font-hand: 'Caveat', 'Segoe Print', cursive;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem;
+  --fs-2xl: 2.25rem;
+  --fs-3xl: clamp(2.5rem, 5.4vw, 4.25rem);
+
+  /* Space */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* Radius */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* Shadow */
+  --shadow-xs: 0 1px 2px rgba(83, 30, 45, 0.05);
+  --shadow-sm: 0 2px 8px -2px rgba(83, 30, 45, 0.08), 0 1px 2px rgba(83, 30, 45, 0.04);
+  --shadow-md: 0 14px 34px -16px rgba(83, 30, 45, 0.2), 0 2px 6px rgba(83, 30, 45, 0.05);
+  --shadow-lg: 0 30px 70px -28px rgba(83, 30, 45, 0.32), 0 8px 18px -8px rgba(83, 30, 45, 0.1);
+  --shadow-primary: 0 12px 26px -12px rgba(143, 24, 56, 0.65);
+  --ring: 0 0 0 3px rgba(143, 24, 56, 0.22);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-1: 140ms;
+  --dur-2: 220ms;
+  --dur-3: 360ms;
+
+  /* Layout */
+  --sidebar-w: 248px;
+  --header-h: 76px;
+  --bottom-nav-h: 68px;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #170F12;
+  --bg-soft: #1D1317;
+  --surface: #22171B;
+  --surface-2: #281B20;
+  --surface-sunk: #1A1114;
+  --primary: #A92148;
+  --primary-hover: #BE2D56;
+  --primary-ink: #F0A6B8;
+  --on-primary: #FFFFFF;
+  --pink: #3A2129;
+  --pink-soft: #2C1A20;
+  --accent: #C98093;
+  --text: #F7E9EC;
+  --text-2: #C4AAB1;
+  --text-3: #8E7A80;
+  --border: #3A2A30;
+  --border-strong: #4C3840;
+  --overlay: rgba(8, 4, 6, 0.6);
+  --camera-bg: #120c0e;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 14px 34px -16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 30px 70px -28px rgba(0, 0, 0, 0.75);
+  --shadow-primary: 0 12px 26px -12px rgba(169, 33, 72, 0.7);
+  --ring: 0 0 0 3px rgba(240, 166, 184, 0.3);
+  color-scheme: dark;
+}
