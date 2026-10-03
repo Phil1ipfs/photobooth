@@ -129,7 +129,7 @@ function ProfileSection() {
 const EXTEND_PLAN = 'premium_monthly';
 
 function BillingSection() {
-  const { entitlements, isPremium, isAdmin, loading } = useEntitlements();
+  const { entitlements, isPremium, isAdmin, loading, stripUsage } = useEntitlements();
   const toast = useToast();
   const [busy, setBusy] = useState(null);
   const plan = describePlan(entitlements);
@@ -176,6 +176,11 @@ function BillingSection() {
           )}
         </div>
         <p className="billing-detail">{plan.detail}</p>
+        {!isPremium && stripUsage && !stripUsage.unlimited && (
+          <p className="billing-detail">
+            Free photostrips: <strong>{Math.min(stripUsage.used, stripUsage.limit)} / {stripUsage.limit} used</strong>
+          </p>
+        )}
         {entitlements.status && (
           <dl className="billing-meta">
             <div>

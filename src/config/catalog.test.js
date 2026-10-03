@@ -2,13 +2,17 @@
 // and checks every Premium id refers to a real template / layout.
 import fs from 'fs';
 import path from 'path';
-import { PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES, FREE_SAVED_STRIP_LIMIT } from './catalog';
-import { LAYOUTS, TEMPLATES } from '../templates/data';
+import { FREE_TEMPLATE_IDS, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES, FREE_STRIP_LIMIT } from './catalog';
+import { DEFAULT_TEMPLATE_ID, LAYOUTS, TEMPLATES } from '../templates/data';
 import { canUseFeature, canUseLayout, canUseTemplate, canUseFilter, isPremium, isAdmin } from '../lib/entitlements';
 
-const sql = fs.readFileSync(path.join(__dirname, '../../supabase/migrations/002_freemium.sql'), 'utf8');
+// Each migration that seeds premium_catalog replaces a kind wholesale, so the
+// latest migration that seeds a kind is what the database holds.
+const migrationsDir = path.join(__dirname, '../../supabase/migrations');
+const migrations = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort().map((f) => fs.readFileSync(path.join(migrationsDir, f), 'utf8'));
 // Only the seed rows (indented `  ('kind', 'id')` lines), not the CHECK constraint.
-const seeded = (kind) => [...sql.matchAll(new RegExp(`^\\s+\\('${kind}', '([a-z0-9-]+)'\\)`, 'gm'))].map((m) => m[1]).sort();
+const seedIn = (sql, kind) => [...sql.matchAll(new RegExp(`^\\s+\\('${kind}', '([a-z0-9-]+)'\\)`, 'gm'))].map((m) => m[1]);
+const seeded = (kind) => (migrations.map((sql) => seedIn(sql, kind)).filter((ids) => ids.length).pop() || []).sort();
 
 test('database premium_catalog matches src/config/catalog.js', () => {
   expect(seeded('template')).toEqual([...PREMIUM_TEMPLATE_IDS].sort());
@@ -24,7 +28,11 @@ test('premium ids refer to real templates and layouts', () => {
 
 test('free tier stays genuinely usable', () => {
   const free = TEMPLATES.filter((t) => !PREMIUM_TEMPLATE_IDS.includes(t.id));
-  expect(free.length).toBeGreaterThanOrEqual(12);
+  expect(free.map((t) => t.id).sort()).toEqual([...FREE_TEMPLATE_IDS].sort());
+  expect(FREE_TEMPLATE_IDS).toContain(DEFAULT_TEMPLATE_ID); // the booth falls back to it
+  // every template is exactly one of free / premium
+  expect(new Set(PREMIUM_TEMPLATE_IDS).size).toBe(PREMIUM_TEMPLATE_IDS.length);
+  expect(free.length + PREMIUM_TEMPLATE_IDS.length).toBe(TEMPLATES.length);
   // Every free template must work in a free layout (no free template forces a Premium layout)
   free.forEach((t) => expect(PREMIUM_LAYOUT_IDS).not.toContain(t.layoutId));
   expect(LAYOUTS.some((l) => !PREMIUM_LAYOUT_IDS.includes(l.id))).toBe(true);
@@ -56,9 +64,11 @@ test('entitlements: free vs premium vs admin', () => {
   expect(FILTERS.some((f) => f.tier === 'free')).toBe(true);
 });
 
-test('free save limit matches the database trigger', () => {
-  const trigger = fs.readFileSync(path.join(__dirname, '../../supabase/migrations/004_free_save_limit.sql'), 'utf8');
-  expect(Number(trigger.match(/free_limit constant int := (\d+);/)[1])).toBe(FREE_SAVED_STRIP_LIMIT);
-  expect(canUseFeature({ plan: 'free' }, 'unlimited_saves')).toBe(false);
-  expect(canUseFeature({ plan: 'premium' }, 'unlimited_saves')).toBe(true);
+test('free photostrip limit matches the database', () => {
+  const migration = fs.readFileSync(path.join(__dirname, '../../supabase/migrations/005_strip_creation_limit.sql'), 'utf8');
+  expect(Number(migration.match(/free_limit constant int := (\d+);/)[1])).toBe(FREE_STRIP_LIMIT);
+  expect(Number(migration.match(/'limit', (\d+),/)[1])).toBe(FREE_STRIP_LIMIT);
+  expect(canUseFeature({ plan: 'free' }, 'unlimited_strips')).toBe(false);
+  expect(canUseFeature({ plan: 'premium' }, 'unlimited_strips')).toBe(true);
+  expect(canUseFeature({ plan: 'admin' }, 'unlimited_strips')).toBe(true);
 });

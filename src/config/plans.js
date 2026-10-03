@@ -5,6 +5,8 @@
 // Premium is sold as a prepaid pass: each payment adds `days` of Premium, with no
 // automatic renewal (PayMongo Hosted Checkout — GCash, Maya, cards…).
 
+import { FREE_STRIP_LIMIT, FREE_TEMPLATE_IDS, PREMIUM_TEMPLATE_IDS } from './catalog';
+
 export const CURRENCY = { code: 'PHP', symbol: '₱', locale: 'en-PH' };
 
 /** Plan "levels" — entitlements compare these, so higher includes lower. */
@@ -14,14 +16,13 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    tagline: 'Everything you need to start making memories.',
+    tagline: `Try PhotoBooth with ${FREE_STRIP_LIMIT} free photostrips.`,
     features: [
-      'Live photobooth with countdown & flash',
-      '16 free templates',
-      'Classic 1 × 4 and 1 × 2 strips',
+      `${FREE_STRIP_LIMIT} photostrips to create — download, save & share them`,
+      `${FREE_TEMPLATE_IDS.length} free templates to design them with`,
+      'Classic 1 × 4 and 1 × 2 strip layouts',
       'Basic filters (Original, Black & white)',
-      'Unlimited downloads',
-      'Save up to 2 strips to My Photos',
+      'Live photobooth with countdown & flash',
       'Always ad-free',
     ],
   },
@@ -31,11 +32,11 @@ export const TIERS = {
     tagline: 'Unlock every look, layout and finish.',
     features: [
       'Everything in Free',
-      'All 24 Premium templates — and every new collection',
+      'Unlimited photostrips',
+      `All ${FREE_TEMPLATE_IDS.length + PREMIUM_TEMPLATE_IDS.length} templates — and every new collection`,
       'Advanced layouts: 2 × 2, 2 × 3, 3 × 2, editorial & comic panels',
       'Premium filters: Sepia, Warm glow, Cool tone, Faded film',
       'HD downloads at 2× resolution',
-      'Unlimited saved strips in My Photos',
       'Early access to future Premium features',
       'Always ad-free',
     ],

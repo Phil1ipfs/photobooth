@@ -880,3 +880,37 @@
     font-size: 1.5rem;
   }
 }
+
+/* Free photostrip allowance (booth) */
+.strip-usage {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.strip-usage-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  color: var(--text-2, inherit);
+}
+.strip-usage.is-full {
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  border-radius: var(--r-md);
+  background: var(--pink-soft);
+}
+.strip-usage.is-full p {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--primary-ink);
+  max-width: 34ch;
+}

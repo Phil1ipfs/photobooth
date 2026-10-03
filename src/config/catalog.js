@@ -1,20 +1,36 @@
 // Which templates / layouts / filters are Premium. This is the single source of
-// truth for the UI; the database copy (supabase/migrations/002_freemium.sql →
-// public.premium_catalog) enforces the same list server-side, and a unit test
-// (src/config/catalog.test.js) fails if the two ever drift apart.
+// truth for the UI; the database copy (public.premium_catalog — latest seed in
+// supabase/migrations/005_strip_creation_limit.sql) enforces the same list
+// server-side, and a unit test (src/config/catalog.test.js) fails if they drift.
 
-// 16 free templates keep the free tier genuinely useful; the rest are Premium.
+// Free accounts get 2 templates; every other template is Premium.
+export const FREE_TEMPLATE_IDS = ['love-hearts', 'classic'];
+
 export const PREMIUM_TEMPLATE_IDS = [
+  'polaroid',
+  'vintage-film',
+  'pink-pop',
   'magazine',
+  'cat',
   'y2k-chrome',
   'dreamy-lavender',
+  'retro-70s',
+  'scrapbook',
   'black-red',
   'arcade',
+  'mono',
+  'cute-pastel',
+  'korean',
   'newspaper',
   'valentines',
+  'birthday',
+  'friends',
+  'modern-minimal',
+  'film-frame',
   'summer-vibes',
   'aesthetic-collage',
   'neon-y2k',
+  'cherry-pop',
   'galaxy-dreams',
   'vintage-postcard',
   'bw-doodle',
@@ -45,9 +61,10 @@ export const FILTERS = [
   { id: 'fade', label: 'Faded film', tier: 'premium' },
 ];
 
-// Free accounts can keep this many strips in My Photos (Premium: unlimited).
-// Enforced in the database by supabase/migrations/004_free_save_limit.sql.
-export const FREE_SAVED_STRIP_LIMIT = 2;
+// Free accounts can create this many photostrips in total (Premium/admin: unlimited).
+// Enforced in the database by supabase/migrations/005_strip_creation_limit.sql;
+// deleting strips doesn't give the allowance back.
+export const FREE_STRIP_LIMIT = 2;
 
 /**
  * Feature catalogue. `tier` is the minimum plan; the plans in plans.js list the
@@ -58,7 +75,7 @@ export const FEATURES = {
   advanced_layouts: { label: 'Advanced layouts (2 × 2, 2 × 3, 3 × 2, editorial, comic)', tier: 'premium' },
   premium_filters: { label: 'Premium photo filters', tier: 'premium' },
   hd_export: { label: 'HD downloads (2× resolution)', tier: 'premium' },
-  unlimited_saves: { label: 'Unlimited saved strips in My Photos', tier: 'premium' },
+  unlimited_strips: { label: 'Unlimited photostrips', tier: 'premium' },
   admin_analytics: { label: 'Admin analytics', tier: 'admin' },
 };
 

@@ -7,6 +7,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import * as ent from '../lib/entitlements';
 import { track } from '../lib/analytics';
 import UpgradeModal from '../components/billing/UpgradeModal';
+import { stripApi } from '../lib/stripGate';
 
 const EntitlementsContext = createContext(null);
 
@@ -29,15 +30,19 @@ export function EntitlementsProvider({ children }) {
   const [loadedFor, setLoadedFor] = useState(undefined);
   const ready = loadedFor === (user?.id || null);
   const [upgrade, setUpgrade] = useState(null); // { feature, title, description } | null
+  // Free photostrip allowance from the database: { used, limit, unlimited } | null (unknown / signed out).
+  const [stripUsage, setStripUsage] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!user || !isSupabaseConfigured) {
       setEntitlements(ent.FREE_ENTITLEMENTS);
+      setStripUsage(null);
       setLoadedFor(user?.id || null);
       return ent.FREE_ENTITLEMENTS;
     }
     setLoading(true);
     try {
+      stripApi.usage().then(setStripUsage, () => {}); // in parallel; best-effort display only
       const { data, error } = await supabase.rpc('get_my_entitlements');
       const next = error ? ent.FREE_ENTITLEMENTS : fromRow(data);
       setEntitlements(next);
@@ -78,8 +83,10 @@ export function EntitlementsProvider({ children }) {
       canUseLayout: (l) => ent.canUseLayout(entitlements, l),
       canUseFilter: (f) => ent.canUseFilter(entitlements, f),
       canUseFeature: (f) => ent.canUseFeature(entitlements, f),
+      stripUsage,
+      setStripUsage,
     }),
-    [entitlements, loading, ready, refresh, openUpgrade]
+    [entitlements, loading, ready, refresh, openUpgrade, stripUsage]
   );
 
   return (

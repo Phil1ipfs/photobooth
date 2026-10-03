@@ -48,7 +48,7 @@ export async function listStrips() {
   return rows.map((r) => ({ ...r, url: urls.get(r.storagePath) || null }));
 }
 
-export async function saveStrip(userId, { blob, templateId, templateName, layoutId, width, height, favorite = false }) {
+export async function saveStrip(userId, { blob, templateId, templateName, layoutId, width, height, favorite = false, creationId }) {
   const client = sb();
   const id = newId();
   const storagePath = `${userId}/${id}.png`;
@@ -69,6 +69,7 @@ export async function saveStrip(userId, { blob, templateId, templateName, layout
       width,
       height,
       favorite,
+      creation_id: creationId, // must be a finalized photostrip creation (database trigger)
     })
     .select()
     .single();

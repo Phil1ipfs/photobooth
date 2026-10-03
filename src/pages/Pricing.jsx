@@ -10,7 +10,7 @@ import { useEntitlements } from '../context/EntitlementsContext';
 import { useToast } from '../context/ToastContext';
 import { useRouter } from '../lib/router';
 import { TIERS, enabledPlans, formatPrice } from '../config/plans';
-import { FREE_SAVED_STRIP_LIMIT, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
+import { FREE_STRIP_LIMIT, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
 import { LAYOUTS, TEMPLATES } from '../templates/data';
 import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
@@ -20,7 +20,7 @@ const freeTemplates = TEMPLATES.length - PREMIUM_TEMPLATE_IDS.length;
 const COMPARE = [
   { label: 'Live photobooth, countdown & flash', free: true, premium: true },
   { label: 'Download, share & print strips', free: true, premium: true },
-  { label: 'Saved strips in My Photos', free: `Up to ${FREE_SAVED_STRIP_LIMIT}`, premium: 'Unlimited' },
+  { label: 'Photostrips you can create', free: `${FREE_STRIP_LIMIT} in total`, premium: 'Unlimited' },
   { label: 'Templates', free: `${freeTemplates}`, premium: `All ${TEMPLATES.length}` },
   { label: 'Layouts', free: '1 × 4, 1 × 2', premium: `All ${LAYOUTS.length}` },
   { label: 'Photo filters', free: 'Original, B&W', premium: '+ Sepia, Warm, Cool, Faded' },
@@ -31,7 +31,7 @@ const COMPARE = [
 
 const FAQ = [
   ['Does it renew automatically?', 'No. Each payment gives you 30 days of Premium — there’s no subscription to cancel and you’re never charged again unless you choose to. Extend anytime from Settings → Billing; extra days are added on top of the time you have left.'],
-  ['Is the free plan really free?', `Yes — no card needed. You get the full photobooth, ${freeTemplates} templates, classic layouts, downloads, saving and favorites.`],
+  ['Is the free plan really free?', `Yes — no card needed. Your free account includes ${FREE_STRIP_LIMIT} photostrips with the full photobooth, ${freeTemplates} templates and classic layouts — download, save and share them as often as you like.`],
   ['How can I pay?', 'Pay with GCash, Maya or a debit/credit card on PayMongo’s secure checkout page. PhotoBooth never sees or stores your payment details.'],
   ['What happens to Premium strips if I downgrade?', 'Everything you’ve already saved stays in My Photos. You just can’t create new strips with Premium templates or layouts until you upgrade again.'],
 ];
@@ -73,7 +73,7 @@ export default function Pricing() {
           <h1>
             Simple plans for <span className="script accent">beautiful</span> memories
           </h1>
-          <p className="muted">Start free and stay free as long as you like. Upgrade when you want every look.</p>
+          <p className="muted">Make your first 2 photostrips free. Upgrade for unlimited strips and every look.</p>
           {plans.length > 1 && (
             <div className="segmented pricing-toggle" role="group" aria-label="Billing interval">
               {plans.map((p) => (

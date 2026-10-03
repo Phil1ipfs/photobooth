@@ -17,7 +17,8 @@ import { usePrefs } from '../context/PrefsContext';
 import { useStrips } from '../context/StripsContext';
 import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
-import { FREE_SAVED_STRIP_LIMIT } from '../config/catalog';
+import { FREE_STRIP_LIMIT } from '../config/catalog';
+import { compositionSignature, createStripGate } from '../lib/stripGate';
 import { track } from '../lib/analytics';
 import { ASPECTS, DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID, TEMPLATES, getLayout, getTemplate } from '../templates/data';
 import { renderStrip } from '../templates/render';
@@ -66,6 +67,32 @@ export default function Booth() {
   const [resultOpen, setResultOpen] = useState(false);
   const [busyAction, setBusyAction] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // ----- Free photostrip allowance (enforced by the database; see lib/stripGate) -----
+  const { stripUsage, setStripUsage } = ent;
+  const [creation, setCreation] = useState(() => restored.current?.creation || null);
+  const gateRef = useRef(null);
+  if (!gateRef.current) {
+    gateRef.current = createStripGate({ initial: restored.current?.creation, onChange: setCreation, onUsage: setStripUsage });
+  }
+  const gate = gateRef.current;
+  const limitReached = !!stripUsage && !stripUsage.unlimited && stripUsage.used >= stripUsage.limit;
+  const openUpgradeFn = ent.openUpgrade;
+  const showLimit = useCallback(
+    () =>
+      openUpgradeFn({
+        feature: 'unlimited_strips',
+        title: `You’ve reached your ${FREE_STRIP_LIMIT} free photostrips`,
+        description: 'Upgrade to Premium to create unlimited photostrips.',
+      }),
+    [openUpgradeFn]
+  );
+  // A different account (or signing out) must not reuse this browser's creation.
+  const userIdRef = useRef(user?.id);
+  useEffect(() => {
+    if (userIdRef.current !== user?.id) gate.reset();
+    userIdRef.current = user?.id;
+  }, [user?.id, gate]);
 
   const template = getTemplate(templateId);
 
@@ -117,11 +144,11 @@ export default function Booth() {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ photos, templateId }));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ photos, templateId, creation }));
     } catch {
       /* storage full — session restore is best-effort */
     }
-  }, [photos, templateId]);
+  }, [photos, templateId, creation]);
 
   useEffect(() => {
     if (prefs.lastTemplate !== templateId) setPref({ lastTemplate: templateId });
@@ -180,21 +207,48 @@ export default function Booth() {
     setCount(0);
   };
 
+  const claimingRef = useRef(false);
   const startCapture = async () => {
     if (busy) {
       stop();
       return;
     }
+    if (claimingRef.current) return; // a click is already being checked
     if (camera.status !== 'ready') {
       toast.error('Camera not ready', camera.error || 'Please wait for the camera to start.');
       return;
     }
-    const run = ++runRef.current;
+    if (!user) {
+      toast.info('Log in to create your strip', `Free accounts include ${FREE_STRIP_LIMIT} photostrips — it only takes a minute.`);
+      navigate('/login?next=/booth');
+      return;
+    }
     let current = photosRef.current;
+    const freshStrip = prefs.captureMode !== 'single' && current.every(Boolean);
+    const emptyStrip = current.every((p) => !p);
+    // Starting a new strip needs a creation from the database (Free: 2 in total).
+    if (freshStrip || emptyStrip || !gate.active) {
+      if (freshStrip || emptyStrip) gate.beginStrip();
+      claimingRef.current = true;
+      let res;
+      try {
+        res = await gate.ensureCreation({ template: template.id, layout: layout.id });
+      } catch (err) {
+        toast.error('Couldn’t start your strip', err.message);
+        return;
+      } finally {
+        claimingRef.current = false;
+      }
+      if (!res.allowed) {
+        showLimit();
+        return;
+      }
+    }
+    const run = ++runRef.current;
     let targets;
     if (prefs.captureMode === 'single') {
       targets = [selected];
-    } else if (current.every(Boolean)) {
+    } else if (freshStrip) {
       // A full strip: start a fresh one (matches the original "take another" behaviour).
       current = empty(slotCount);
       setPhotos(empty(slotCount));
@@ -259,6 +313,7 @@ export default function Booth() {
 
   const clearPhotos = () => {
     stop();
+    gate.beginStrip(); // an exported strip is done; an unexported draft is reused
     setPhotos(empty(slotCount));
     setSelected(0);
     setResultOpen(false);
@@ -285,10 +340,36 @@ export default function Booth() {
     return true;
   };
 
+  /**
+   * Every export (download / save / share / print) is authorised by the database:
+   * the first export locks this creation to the composition; a different
+   * composition (other photos, template, layout or filter) is a new photostrip.
+   */
+  const exportedOnce = useRef(false);
+  const authorizeExport = async () => {
+    if (!user) {
+      toast.info('Log in to create your strip', 'Your photos will be waiting for you right here.');
+      navigate('/login?next=/booth');
+      return false;
+    }
+    const signature = compositionSignature({ photos, templateId: template.id, layoutId: layout.id, filter: prefs.filter, aspect });
+    const res = await gate.authorizeExport(signature, { template: template.id, layout: layout.id });
+    if (!res.allowed) {
+      showLimit();
+      return false;
+    }
+    if (res.created && exportedOnce.current && stripUsage && !stripUsage.unlimited) {
+      toast.info('Counted as a new photostrip', 'Changing a strip after downloading it creates a new one.');
+    }
+    exportedOnce.current = true;
+    return true;
+  };
+
   const withAction = (id, fn) => async () => {
     if (!ensurePhotos()) return;
     setBusyAction(id);
     try {
+      if (!(await authorizeExport())) return;
       await fn();
     } catch (err) {
       toast.error('Something went wrong', err.message);
@@ -324,26 +405,22 @@ export default function Booth() {
       return null;
     }
     if (saved) return saved;
-    // Free accounts keep a limited number of strips (the database enforces it too).
-    if (ent.ready && !ent.canUseFeature('unlimited_saves') && strips.strips.length >= FREE_SAVED_STRIP_LIMIT) {
-      openUpgrade({
-          feature: 'unlimited_saves',
-          title: 'Your My Photos is full',
-          description: `Free accounts can keep ${FREE_SAVED_STRIP_LIMIT} saved strips. Upgrade for unlimited saves — or delete one in My Photos. You can still download this strip.`,
-        });
-      return null;
-    }
     const { blob, width, height } = await exportBlob();
     let rec;
     try {
-      rec = await strips.save({ blob, width, height, templateId: template.id, templateName: template.name, layoutId: layout.id, favorite });
+      rec = await strips.save({
+        blob,
+        width,
+        height,
+        templateId: template.id,
+        templateName: template.name,
+        layoutId: layout.id,
+        favorite,
+        creationId: gate.state.id,
+      });
     } catch (err) {
-      if (/strip_limit_reached/i.test(err.message)) {
-        openUpgrade({
-          feature: 'unlimited_saves',
-          title: 'Your My Photos is full',
-          description: `Free accounts can keep ${FREE_SAVED_STRIP_LIMIT} saved strips. Upgrade for unlimited saves — or delete one in My Photos. You can still download this strip.`,
-        });
+      if (/creation_required|strip_limit_reached/i.test(err.message)) {
+        showLimit();
         return null;
       }
       // The database refuses Premium templates/layouts for free accounts.
@@ -483,6 +560,24 @@ export default function Booth() {
           <p className="camera-tip">
             <kbd>Space</kbd> to take a photo · tap a slot to retake it
           </p>
+          {user && stripUsage && !stripUsage.unlimited && (
+            <div className={`strip-usage${limitReached && !creation?.id ? ' is-full' : ''}`} role="status">
+              <span className="strip-usage-count">
+                {Math.min(stripUsage.used, stripUsage.limit)} / {stripUsage.limit} Free Strips Used
+              </span>
+              {limitReached && !creation?.id && (
+                <>
+                  <p>
+                    You’ve reached your {stripUsage.limit} free photostrips. Upgrade to Premium to create unlimited
+                    photostrips.
+                  </p>
+                  <Button size="sm" icon="sparkle" to="/pricing" onClick={() => track('upgrade_clicked', { source: 'strip_limit' })}>
+                    Upgrade to Premium
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </section>
 
         <PhotoSlots
