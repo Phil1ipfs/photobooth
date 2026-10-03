@@ -17,7 +17,7 @@ import PremiumBadge from '../components/billing/PremiumBadge';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { describePlan } from '../lib/entitlements';
 import { formatPrice, getPlan } from '../config/plans';
-import { openBillingPortal } from '../lib/billing';
+import { startCheckout } from '../lib/billing';
 import { isAnalyticsEnabled, setAnalyticsEnabled, track } from '../lib/analytics';
 
 function Section({ id, title, description, children }) {
@@ -126,12 +126,15 @@ function ProfileSection() {
   );
 }
 
+const EXTEND_PLAN = 'premium_monthly';
+
 function BillingSection() {
   const { entitlements, isPremium, isAdmin, loading } = useEntitlements();
   const toast = useToast();
   const [busy, setBusy] = useState(null);
   const plan = describePlan(entitlements);
   const billingPlan = getPlan(entitlements.billingPlan);
+  const extendPlan = getPlan(EXTEND_PLAN);
   const end = entitlements.currentPeriodEnd
     ? new Date(entitlements.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
@@ -151,6 +154,7 @@ function BillingSection() {
     trialing: 'Trial',
     past_due: 'Payment failed — action needed',
     canceled: 'Canceled',
+    expired: 'Expired',
     unpaid: 'Unpaid',
     incomplete: 'Incomplete',
   }[entitlements.status];
@@ -180,7 +184,7 @@ function BillingSection() {
             </div>
             {end && (
               <div>
-                <dt>{entitlements.cancelAtPeriodEnd || !isPremium ? 'Access until' : 'Next billing date'}</dt>
+                <dt>{entitlements.cancelAtPeriodEnd || !isPremium ? (isPremium ? 'Premium until' : 'Ended on') : 'Next billing date'}</dt>
                 <dd>{end}</dd>
               </div>
             )}
@@ -191,26 +195,27 @@ function BillingSection() {
       <div className="billing-actions">
         {!isPremium && (
           <Button icon="sparkle" to="/pricing" onClick={() => track('upgrade_clicked', { source: 'settings' })}>
-            Upgrade to Premium
+            {entitlements.status === 'expired' ? 'Renew Premium' : 'Upgrade to Premium'}
           </Button>
         )}
-        {entitlements.hasBillingAccount && (
-          <Button variant="outline" icon="settings" loading={busy === 'portal'} onClick={run('portal', () => openBillingPortal())}>
-            Manage billing
-          </Button>
-        )}
-        {entitlements.status === 'past_due' && (
-          <Button variant="outline" icon="alert" loading={busy === 'pay'} onClick={run('pay', () => openBillingPortal('update_payment'))}>
-            Update payment method
-          </Button>
-        )}
-        {isPremium && !isAdmin && entitlements.status === 'active' && !entitlements.cancelAtPeriodEnd && (
-          <Button variant="ghost" loading={busy === 'cancel'} onClick={run('cancel', () => openBillingPortal('cancel'))}>
-            Cancel subscription
+        {isPremium && !isAdmin && (
+          <Button
+            variant="outline"
+            icon="sparkle"
+            loading={busy === 'extend'}
+            onClick={run('extend', () => {
+              track('upgrade_clicked', { source: 'settings_extend' });
+              return startCheckout(EXTEND_PLAN);
+            })}
+          >
+            Extend {extendPlan ? `${extendPlan.days} days · ${formatPrice(extendPlan.price)}` : 'Premium'}
           </Button>
         )}
       </div>
-      <small className="muted">Payments are handled securely by Stripe. PhotoBooth never stores your card details.</small>
+      <small className="muted">
+        Payments (GCash, Maya or card) are handled securely by PayMongo. Premium doesn’t renew automatically, so
+        there’s nothing to cancel — PhotoBooth never sees or stores your payment details.
+      </small>
     </Section>
   );
 }

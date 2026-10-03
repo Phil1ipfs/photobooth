@@ -1,6 +1,6 @@
-// Browser side of billing. All Stripe work happens in the server functions under
-// /api/billing (they hold the Stripe secret key); the browser only sends the
-// user's session token and gets back a Stripe-hosted URL to redirect to.
+// Browser side of billing. All PayMongo work happens in the server functions
+// under /api/billing (they hold the PayMongo secret key); the browser only sends
+// the user's session token and gets back a PayMongo-hosted checkout URL.
 import { isSupabaseConfigured, supabase } from './supabase';
 
 export class BillingError extends Error {}
@@ -28,14 +28,16 @@ async function call(path, body) {
   return json;
 }
 
-/** Start Stripe Checkout for a plan id from src/config/plans.js. */
+/** Start PayMongo Checkout (GCash, Maya, card…) for a plan id from src/config/plans.js. */
 export async function startCheckout(planId) {
   const { url } = await call('checkout', { planId });
   window.location.assign(url);
 }
 
-/** Open the Stripe customer portal. flow: undefined | 'cancel' | 'update_payment' */
-export async function openBillingPortal(flow) {
-  const { url } = await call('portal', { flow });
-  window.location.assign(url);
+/**
+ * Ask the server to verify a returning checkout with PayMongo.
+ * Resolves to { status: 'granted' | 'already_granted' | 'unpaid' | 'unknown_session', currentPeriodEnd }.
+ */
+export function confirmCheckout(reference) {
+  return call('confirm', { reference });
 }

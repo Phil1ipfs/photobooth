@@ -21,7 +21,7 @@ function StaticPage({ title, updated, children }) {
 export function Terms() {
   return (
     <StaticPage title="Terms of Use" updated="October 2026">
-      <p>PhotoBooth is a free, browser-based photo booth. By using it you agree to these simple terms.</p>
+      <p>PhotoBooth is a browser-based photo booth with a free plan and an optional paid Premium plan. By using it you agree to these simple terms.</p>
       <h2>Your photos</h2>
       <p>
         You own every photo you take. Please only photograph people who are happy to be photographed, and don’t use
@@ -34,6 +34,17 @@ export function Terms() {
       </p>
       <h2>Templates</h2>
       <p>Template designs are provided for personal use on strips you create with PhotoBooth.</p>
+      <h2>Premium & payments</h2>
+      <p>
+        Premium is a one-time purchase: each payment of ₱99 unlocks Premium features for 30 days on your account.
+        It does not renew automatically and you are never charged again unless you buy more time. Payments are
+        processed by PayMongo (GCash, Maya or debit/credit card).
+      </p>
+      <p>
+        If a payment went through but Premium didn’t activate, or you were charged by mistake, contact us within 7
+        days and we’ll fix it or refund you. Because Premium is unlocked immediately, other purchases are
+        non-refundable once used.
+      </p>
     </StaticPage>
   );
 }
@@ -66,9 +77,9 @@ export function Privacy() {
       </p>
       <h2>Payments</h2>
       <p>
-        Premium subscriptions are processed by Stripe. Your card details go directly to Stripe — PhotoBooth never sees
-        or stores them. We keep only your subscription status, plan and billing dates so we know which features to
-        unlock.
+        Premium payments are processed by PayMongo. Your card, GCash or Maya details go directly to PayMongo —
+        PhotoBooth never sees or stores them. We keep only your plan, the payment reference, amount and the date your
+        Premium ends so we know which features to unlock.
       </p>
       <h2>Fonts</h2>
       <p>Typefaces are loaded from Google Fonts, which may receive your IP address as part of the request.</p>

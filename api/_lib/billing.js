@@ -1,132 +1,107 @@
-// Stripe → Supabase subscription sync. Pure logic: `stripe` and `repo` are
+// PayMongo → Supabase Premium grants. Pure logic: `paymongo` and `repo` are
 // injected so this is unit-testable without network access.
 //
 // Principles
-//  • Stripe is the source of truth: for every subscription-related event we
-//    re-fetch the subscription from Stripe and upsert its *current* state, so
-//    out-of-order or repeated webhooks always converge to the right result.
-//  • Idempotent: each Stripe event id is claimed once in billing_events; an event
-//    that already finished processing is acknowledged and skipped.
-const { planForPrice } = require('./plans');
+//  • PayMongo is the source of truth: whether the trigger is the webhook or the
+//    success page, we re-fetch the checkout session from PayMongo with our secret
+//    key and only grant Premium if it shows a *paid* payment of the right amount.
+//  • We only fulfil sessions we created (checkout_sessions table), for the user
+//    who created them.
+//  • Idempotent: grant_premium_pass() records each PayMongo payment id once, in
+//    the same transaction that extends Premium.
+const { getPlan } = require('./plans');
 
-const toIso = (unix) => (unix ? new Date(unix * 1000).toISOString() : null);
+class FulfilError extends Error {}
 
-/** Subscription id from an invoice (handles both pre- and post-2025 API shapes). */
-const invoiceSubscriptionId = (inv) =>
-  (typeof inv.subscription === 'string' ? inv.subscription : inv.subscription?.id) ||
-  inv.parent?.subscription_details?.subscription ||
-  null;
-
-const customerId = (obj) => (typeof obj.customer === 'string' ? obj.customer : obj.customer?.id);
-
-/** Map a Stripe subscription object to a subscriptions row. */
-function subscriptionRow(sub, userId) {
-  const item = sub.items?.data?.[0];
-  const priceId = item?.price?.id || null;
-  const plan = planForPrice(priceId);
-  return {
-    user_id: userId,
-    stripe_customer_id: customerId(sub),
-    stripe_subscription_id: sub.id,
-    plan: plan?.planId || sub.metadata?.plan || 'unknown',
-    // Unknown prices (e.g. another product in the same Stripe account) grant nothing.
-    tier: plan ? plan.tier : 'none',
-    price_id: priceId,
-    status: sub.status,
-    // 2025+ API: billing period lives on the subscription item
-    current_period_start: toIso(sub.current_period_start ?? item?.current_period_start),
-    current_period_end: toIso(sub.current_period_end ?? item?.current_period_end),
-    cancel_at_period_end: !!sub.cancel_at_period_end,
-    canceled_at: toIso(sub.canceled_at),
-    ended_at: toIso(sub.ended_at),
-  };
-}
-
-async function resolveUserId(repo, { hint, sub }) {
-  return hint || sub?.metadata?.user_id || (sub ? await repo.getUserForCustomer(customerId(sub)) : null);
-}
-
-/** Fetch the latest state of a subscription from Stripe and store it. */
-async function syncSubscription({ stripe, repo }, subscriptionId, userIdHint) {
-  const sub = await stripe.subscriptions.retrieve(subscriptionId);
-  const userId = await resolveUserId(repo, { hint: userIdHint, sub });
-  if (!userId) {
-    console.warn(`[billing] subscription ${sub.id}: no matching PhotoBooth user — skipped`);
-    return { sub, userId: null };
-  }
-  await repo.saveCustomer(userId, customerId(sub));
-  await repo.upsertSubscription(subscriptionRow(sub, userId));
-  return { sub, userId };
+/** The paid payment of a checkout session, if any. */
+function paidPayment(session) {
+  const payments = session?.attributes?.payments || session?.attributes?.payment_intent?.attributes?.payments || [];
+  return payments.find((p) => p?.attributes?.status === 'paid') || null;
 }
 
 /**
- * Process one verified Stripe event. Returns a short summary for logging/tests.
- * Throws on transient failures so Stripe retries (the event stays unprocessed).
+ * Re-fetch a checkout session from PayMongo and grant Premium if it was paid.
+ * Returns { status: 'granted' | 'already_granted' | 'unpaid' | 'unknown_session', ... }.
+ * Throws FulfilError for sessions that must never grant anything (mismatches), and
+ * any other error for transient failures (so the webhook is retried).
  */
-async function handleStripeEvent(event, deps) {
-  const { repo } = deps;
-  const claim = await repo.claimEvent(event.id, event.type);
-  if (claim === 'processed') return { status: 'duplicate' };
+async function fulfilCheckoutSession({ paymongo, repo }, sessionId, { expectedUserId } = {}) {
+  const record = await repo.getCheckoutBySession(sessionId);
+  if (!record) return { status: 'unknown_session' }; // e.g. a dashboard payment link — not ours
+  if (expectedUserId && record.user_id !== expectedUserId) throw new FulfilError('Checkout belongs to another user.');
 
-  const obj = event.data.object;
-  let userId = null;
-  const extra = {};
+  const plan = getPlan(record.plan);
+  if (!plan) throw new FulfilError(`Unknown plan ${record.plan}.`);
 
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      if (obj.mode !== 'subscription' || !obj.subscription) break;
-      const hint = obj.client_reference_id || obj.metadata?.user_id || null;
-      if (hint && obj.customer) await repo.saveCustomer(hint, customerId(obj));
-      const subId = typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id;
-      const res = await syncSubscription(deps, subId, hint);
-      userId = res.userId;
-      if (userId) await repo.track(userId, 'checkout_completed', { plan: obj.metadata?.plan || 'premium' });
-      break;
-    }
+  const session = await paymongo.getCheckoutSession(sessionId);
+  const attrs = session?.attributes || {};
+  if (session?.id !== sessionId) throw new FulfilError('Session id mismatch.');
+  if (typeof attrs.livemode === 'boolean' && attrs.livemode !== paymongo.livemode) {
+    throw new FulfilError('Test/live mode mismatch.');
+  }
+  if (attrs.metadata?.user_id && attrs.metadata.user_id !== record.user_id) throw new FulfilError('Session user mismatch.');
 
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated':
-    case 'customer.subscription.deleted': {
-      const res = await syncSubscription(deps, obj.id, null);
-      userId = res.userId;
-      if (!userId) break;
-      if (event.type === 'customer.subscription.deleted') {
-        await repo.track(userId, 'subscription_cancelled', { reason: obj.cancellation_details?.reason || 'ended' });
-      } else if (event.type === 'customer.subscription.updated') {
-        const prev = event.data.previous_attributes || {};
-        if (prev.cancel_at_period_end === false && obj.cancel_at_period_end) {
-          await repo.track(userId, 'subscription_cancel_scheduled', {});
-        }
-      }
-      break;
-    }
+  const payment = paidPayment(session);
+  if (!payment) return { status: 'unpaid', userId: record.user_id };
 
-    case 'invoice.paid':
-    case 'invoice.payment_failed': {
-      const subId = invoiceSubscriptionId(obj);
-      if (!subId) break; // one-off invoices aren't subscriptions
-      const res = await syncSubscription(deps, subId, null);
-      userId = res.userId;
-      if (event.type === 'invoice.paid') {
-        extra.amount = obj.amount_paid ?? null;
-        extra.currency = obj.currency || null;
-        if (userId) {
-          const name = obj.billing_reason === 'subscription_create' ? 'subscription_started' : 'subscription_renewed';
-          await repo.track(userId, name, { amount: obj.amount_paid, currency: obj.currency });
-        }
-      } else if (userId) {
-        await repo.track(userId, 'subscription_payment_failed', { attempt: obj.attempt_count || 1 });
-      }
-      break;
-    }
-
-    default:
-      // Unhandled event types are acknowledged so Stripe doesn't retry them.
-      break;
+  const amount = payment.attributes.amount;
+  const currency = String(payment.attributes.currency || '').toUpperCase();
+  // Amount can be higher than the plan price if pass-on fees are enabled, never lower.
+  if (currency !== plan.currency || !(amount >= plan.amount)) {
+    throw new FulfilError(`Paid ${amount} ${currency}, expected ${plan.amount} ${plan.currency}.`);
   }
 
-  await repo.finishEvent(event.id, { user_id: userId, ...extra });
-  return { status: 'processed', type: event.type, userId };
+  const result = await repo.grantPass({
+    userId: record.user_id,
+    paymentId: payment.id,
+    plan: record.plan,
+    days: plan.days,
+    amount,
+    currency,
+    sessionId,
+  });
+  return {
+    status: result?.granted ? 'granted' : 'already_granted',
+    userId: record.user_id,
+    currentPeriodEnd: result?.currentPeriodEnd || null,
+  };
 }
 
-module.exports = { handleStripeEvent, subscriptionRow, invoiceSubscriptionId, syncSubscription };
+/** Event type + checkout session id from a webhook payload. */
+function parseEvent(payload) {
+  const attrs = payload?.data?.attributes || {};
+  const resource = attrs.data || {};
+  return {
+    id: payload?.data?.id || null,
+    type: attrs.type || null,
+    livemode: typeof attrs.livemode === 'boolean' ? attrs.livemode : null,
+    sessionId: resource.type === 'checkout_session' ? resource.id : null,
+  };
+}
+
+/**
+ * Process one verified PayMongo webhook. Unrecognised events are acknowledged
+ * (PayMongo retries anything that isn't 2xx). Throws only on transient failures.
+ */
+async function handlePaymongoEvent(payload, deps) {
+  const event = parseEvent(payload);
+  if (event.livemode !== null && event.livemode !== deps.paymongo.livemode) {
+    return { status: 'ignored', reason: 'mode_mismatch', type: event.type };
+  }
+  if (event.type !== 'checkout_session.payment.paid' || !event.sessionId) {
+    return { status: 'ignored', type: event.type };
+  }
+  try {
+    const result = await fulfilCheckoutSession(deps, event.sessionId);
+    return { type: event.type, ...result };
+  } catch (err) {
+    if (err instanceof FulfilError) {
+      // Permanent problem — log it for review, but don't make PayMongo retry forever.
+      console.error('[billing webhook] rejected', event.id, err.message);
+      return { status: 'rejected', type: event.type };
+    }
+    throw err;
+  }
+}
+
+module.exports = { fulfilCheckoutSession, handlePaymongoEvent, parseEvent, paidPayment, FulfilError };

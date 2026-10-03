@@ -4,10 +4,13 @@ import Button from '../components/common/Button';
 import Icon from '../components/common/Icon';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { describePlan } from '../lib/entitlements';
+import { confirmCheckout } from '../lib/billing';
 
 /**
- * Stripe Checkout returns here. Premium is granted by the Stripe webhook (not by
- * this page), so we poll the database until the subscription shows up.
+ * PayMongo Checkout returns here with ?ref=PB-…. Premium is never granted by the
+ * browser: we ask the server to re-check the payment with PayMongo (it grants
+ * Premium if paid — the webhook does the same, whichever is first), then poll
+ * the database until Premium shows up.
  */
 export default function BillingSuccess() {
   const { refresh } = useEntitlements();
@@ -17,7 +20,16 @@ export default function BillingSuccess() {
   useEffect(() => {
     let alive = true;
     let tries = 0;
+    const reference = new URLSearchParams(window.location.search).get('ref');
     const poll = async () => {
+      if (reference) {
+        try {
+          await confirmCheckout(reference);
+        } catch {
+          /* fall back to waiting for the webhook */
+        }
+        if (!alive) return;
+      }
       const e = await refresh();
       if (!alive) return;
       if (e.plan === 'premium' || e.plan === 'admin') {

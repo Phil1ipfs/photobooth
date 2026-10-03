@@ -57,7 +57,7 @@ export default function UpgradeModal({ info, onClose }) {
           </ul>
           {plan && (
             <p className="upgrade-price">
-              <strong>{formatPrice(plan.price)}</strong> / {plan.interval} · cancel anytime
+              <strong>{formatPrice(plan.price)}</strong> / {plan.interval} · one-time, no auto-renewal
             </p>
           )}
           <div className="upgrade-actions">

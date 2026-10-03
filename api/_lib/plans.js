@@ -1,21 +1,18 @@
-// Server-side plan map: which Stripe Price each purchasable plan uses. Price IDs
-// come from environment variables so test/live mode and price changes never need
-// a code change. Keep the ids in sync with src/config/plans.js (display config).
+// Server-side plan map: what each purchasable plan costs and how many days of
+// Premium it buys. This — not the browser — decides the amount charged. Keep the
+// ids and prices in sync with src/config/plans.js (display config).
 const PLANS = {
-  premium_monthly: { tier: 'premium', priceEnv: 'STRIPE_PRICE_PREMIUM_MONTHLY' },
-  premium_yearly: { tier: 'premium', priceEnv: 'STRIPE_PRICE_PREMIUM_YEARLY' },
+  premium_monthly: {
+    tier: 'premium',
+    name: 'PhotoBooth Premium — 30 days',
+    description: 'All Premium templates, layouts, filters and HD downloads for 30 days. No auto-renewal.',
+    amount: 9900, // centavos (₱99.00)
+    currency: 'PHP',
+    days: 30,
+  },
 };
 
-/** Stripe Price id for a plan, or null if the plan is unknown / not configured. */
-function priceIdFor(planId) {
-  const plan = PLANS[planId];
-  return (plan && process.env[plan.priceEnv]) || null;
-}
+/** Plan config for a plan id, or null if unknown. */
+const getPlan = (planId) => (Object.prototype.hasOwnProperty.call(PLANS, planId) ? PLANS[planId] : null);
 
-/** Reverse lookup used by the webhook: Stripe Price id → { planId, tier }. */
-function planForPrice(priceId) {
-  const entry = Object.entries(PLANS).find(([, p]) => priceId && process.env[p.priceEnv] === priceId);
-  return entry ? { planId: entry[0], tier: entry[1].tier } : null;
-}
-
-module.exports = { PLANS, priceIdFor, planForPrice };
+module.exports = { PLANS, getPlan };

@@ -1,9 +1,9 @@
 // Centralised plan / pricing configuration for the UI. Prices shown here are for
-// display only — what Stripe actually charges is the Stripe Price the server maps
-// each plan to (api/_lib/plans.js, via STRIPE_PRICE_* environment variables).
+// display only — what PayMongo actually charges is decided on the server
+// (api/_lib/plans.js). Keep the ids and prices of both files in sync.
 //
-// To add a plan (e.g. Premium Yearly): create the Price in Stripe, add an entry
-// below with `enabled: true`, and add its env var mapping in api/_lib/plans.js.
+// Premium is sold as a prepaid pass: each payment adds `days` of Premium, with no
+// automatic renewal (PayMongo Hosted Checkout — GCash, Maya, cards…).
 
 export const CURRENCY = { code: 'PHP', symbol: '₱', locale: 'en-PH' };
 
@@ -40,23 +40,16 @@ export const TIERS = {
   },
 };
 
-/** Purchasable plans (billing intervals). Only `enabled` ones are offered. */
+/** Purchasable plans. Only `enabled` ones are offered. */
 export const PLANS = [
   {
     id: 'premium_monthly',
     tier: 'premium',
-    name: 'Premium Monthly',
+    name: 'Premium · 30 days',
     price: 99,
-    interval: 'month',
+    interval: '30 days',
+    days: 30,
     enabled: true,
-  },
-  {
-    id: 'premium_yearly',
-    tier: 'premium',
-    name: 'Premium Yearly',
-    price: 990,
-    interval: 'year',
-    enabled: false, // turn on once the yearly Stripe Price + env var exist
   },
 ];
 

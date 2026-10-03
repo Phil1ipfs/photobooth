@@ -1,5 +1,5 @@
 // The signed-in user's plan, loaded from the database (get_my_entitlements RPC —
-// computed from Stripe-synced subscription rows; the browser can't change it).
+// computed from PayMongo-verified payments; the browser can't change it).
 // Also owns the Premium upgrade modal so any component can open it.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
@@ -13,6 +13,7 @@ const EntitlementsContext = createContext(null);
 const fromRow = (row) => ({
   plan: row?.plan || 'free',
   billingPlan: row?.billingPlan || null,
+  provider: row?.provider || null,
   status: row?.status || null,
   currentPeriodEnd: row?.currentPeriodEnd || null,
   cancelAtPeriodEnd: !!row?.cancelAtPeriodEnd,
@@ -51,7 +52,7 @@ export function EntitlementsProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  // Returning from Stripe (checkout / portal) in another tab → re-check.
+  // Returning from PayMongo checkout in another tab → re-check.
   useEffect(() => {
     const onFocus = () => document.visibilityState === 'visible' && refresh();
     document.addEventListener('visibilitychange', onFocus);

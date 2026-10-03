@@ -14,7 +14,7 @@ function send(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-/** Read the untouched request body (Stripe signatures are computed over raw bytes). */
+/** Read the untouched request body (webhook signatures are computed over raw bytes). */
 async function readRawBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);

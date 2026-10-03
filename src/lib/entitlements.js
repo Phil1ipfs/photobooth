@@ -31,7 +31,7 @@ export function describePlan(ent) {
   if (!isPremium(ent)) return { label: 'Free', detail: 'Upgrade any time to unlock Premium.' };
   const end = ent.currentPeriodEnd ? new Date(ent.currentPeriodEnd) : null;
   const date = end ? end.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
-  if (ent.cancelAtPeriodEnd) return { label: 'Premium', detail: date ? `Premium access continues until ${date}.` : 'Cancels at period end.' };
+  if (ent.cancelAtPeriodEnd) return { label: 'Premium', detail: date ? `Premium until ${date}. No auto-renewal — extend anytime.` : 'Premium is active.' };
   if (ent.status === 'past_due') return { label: 'Premium', detail: 'Your last payment failed — please update your payment method.' };
   return { label: 'Premium', detail: date ? `Renews on ${date}.` : 'Active.' };
 }

@@ -1,47 +1,52 @@
 // POST /api/billing/checkout  { planId } → { url }
-// Creates a Stripe Checkout Session for the signed-in user. Premium is NOT granted
-// here — only the verified Stripe webhook activates it.
-const { getStripe, siteUrl } = require('../_lib/clients');
+// Creates a PayMongo Checkout Session (GCash, Maya, cards…) for the signed-in
+// user. Premium is NOT granted here — only a payment that PayMongo confirms as
+// paid (webhook or /api/billing/confirm) activates it.
+const crypto = require('node:crypto');
+const { env, getPaymongo, siteUrl } = require('../_lib/clients');
 const { HttpError, handler, readJson, requireUser, send } = require('../_lib/http');
 const { supabaseRepo } = require('../_lib/repo');
-const { priceIdFor } = require('../_lib/plans');
+const { getPlan } = require('../_lib/plans');
+
+const DEFAULT_METHODS = 'card,gcash,paymaya';
+const MAX_PREPAID_DAYS = 330; // don't sell more than ~a year ahead
+
+const paymentMethods = () =>
+  (env('PAYMONGO_PAYMENT_METHODS') || DEFAULT_METHODS)
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
 
 module.exports = handler(async (req, res) => {
   const user = await requireUser(req);
   const { planId } = await readJson(req);
-  const price = priceIdFor(planId);
-  if (!price) throw new HttpError(400, 'That plan isn’t available.');
+  const plan = getPlan(planId);
+  if (!plan) throw new HttpError(400, 'That plan isn’t available.');
 
   const repo = supabaseRepo();
   const tier = await repo.currentTier(user.id);
-  if (tier === 'premium' || tier === 'admin') {
-    throw new HttpError(409, 'You already have Premium — manage your plan from Settings → Billing.');
+  if (tier === 'admin') throw new HttpError(409, 'Admins already have every Premium feature.');
+  const active = await repo.getActiveSubscription(user.id);
+  if (active?.current_period_end && new Date(active.current_period_end) - Date.now() > MAX_PREPAID_DAYS * 864e5) {
+    throw new HttpError(409, 'You’ve already prepaid Premium for the coming months.');
   }
 
-  const stripe = getStripe();
-  let customer = await repo.getCustomerForUser(user.id);
-  if (!customer) {
-    const created = await stripe.customers.create(
-      { email: user.email, metadata: { user_id: user.id } },
-      { idempotencyKey: `customer-${user.id}` }
-    );
-    await repo.saveCustomer(user.id, created.id);
-    customer = (await repo.getCustomerForUser(user.id)) || created.id;
-  }
-
+  const reference = `PB-${crypto.randomBytes(9).toString('base64url')}`;
   const site = siteUrl(req);
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer,
-    client_reference_id: user.id,
-    line_items: [{ price, quantity: 1 }],
-    allow_promotion_codes: true,
-    metadata: { user_id: user.id, plan: planId },
-    subscription_data: { metadata: { user_id: user.id, plan: planId } },
-    success_url: `${site}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+  const session = await getPaymongo().createCheckoutSession({
+    line_items: [{ name: plan.name, amount: plan.amount, currency: plan.currency, quantity: 1, description: plan.description }],
+    payment_method_types: paymentMethods(),
+    description: plan.name,
+    reference_number: reference,
+    send_email_receipt: true,
+    show_description: true,
+    show_line_items: true,
+    metadata: { user_id: user.id, plan: planId, reference },
+    success_url: `${site}/billing/success?ref=${reference}`,
     cancel_url: `${site}/pricing?checkout=cancelled`,
   });
 
-  await repo.track(user.id, 'checkout_started', { plan: planId });
-  return send(res, 200, { url: session.url });
+  await repo.saveCheckout({ userId: user.id, sessionId: session.id, reference, plan: planId });
+  await repo.track(user.id, 'checkout_started', { plan: planId, provider: 'paymongo' });
+  return send(res, 200, { url: session.attributes.checkout_url });
 });

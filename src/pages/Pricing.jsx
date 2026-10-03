@@ -12,7 +12,7 @@ import { useRouter } from '../lib/router';
 import { TIERS, enabledPlans, formatPrice } from '../config/plans';
 import { PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
 import { LAYOUTS, TEMPLATES } from '../templates/data';
-import { openBillingPortal, startCheckout } from '../lib/billing';
+import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
 import { track } from '../lib/analytics';
 
@@ -30,9 +30,9 @@ const COMPARE = [
 ];
 
 const FAQ = [
-  ['Can I cancel anytime?', 'Yes. Cancel from Settings → Billing in a couple of clicks. You keep Premium until the end of the period you’ve paid for, then return to Free — your saved strips stay.'],
+  ['Does it renew automatically?', 'No. Each payment gives you 30 days of Premium — there’s no subscription to cancel and you’re never charged again unless you choose to. Extend anytime from Settings → Billing; extra days are added on top of the time you have left.'],
   ['Is the free plan really free?', `Yes — no card needed. You get the full photobooth, ${freeTemplates} templates, classic layouts, downloads, saving and favorites.`],
-  ['How do payments work?', 'Payments are processed securely by Stripe. PhotoBooth never sees or stores your card details.'],
+  ['How can I pay?', 'Pay with GCash, Maya or a debit/credit card on PayMongo’s secure checkout page. PhotoBooth never sees or stores your payment details.'],
   ['What happens to Premium strips if I downgrade?', 'Everything you’ve already saved stays in My Photos. You just can’t create new strips with Premium templates or layouts until you upgrade again.'],
 ];
 
@@ -61,15 +61,6 @@ export default function Pricing() {
     }
   };
 
-  const manage = async () => {
-    setBusy(true);
-    try {
-      await openBillingPortal();
-    } catch (err) {
-      toast.error('Couldn’t open billing', err.message);
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="landing">
@@ -100,7 +91,7 @@ export default function Pricing() {
             <p className="plan-tagline muted">{TIERS.free.tagline}</p>
             <p className="plan-price">
               <strong>{formatPrice(0)}</strong>
-              <span>/ {plan?.interval || 'month'}</span>
+              <span>forever</span>
             </p>
             <ul className="plan-features">
               {TIERS.free.features.map((f) => (
@@ -145,8 +136,8 @@ export default function Pricing() {
             </ul>
             {isPremium ? (
               <>
-                <Button block variant="soft" icon="settings" onClick={manage} loading={busy}>
-                  Manage subscription
+                <Button block variant="soft" icon="sparkle" onClick={upgrade} loading={busy}>
+                  Extend {plan.interval}
                 </Button>
                 <p className="plan-note">{describePlan(entitlements).detail}</p>
               </>
@@ -155,7 +146,7 @@ export default function Pricing() {
                 <Button block size="lg" icon="sparkle" onClick={upgrade} loading={busy} className="plan-cta">
                   {user ? 'Upgrade to Premium' : 'Sign up & upgrade'}
                 </Button>
-                <p className="plan-note">Cancel anytime · Secure checkout by Stripe</p>
+                <p className="plan-note">One-time payment · No auto-renewal · GCash, Maya or card via PayMongo</p>
               </>
             )}
           </article>

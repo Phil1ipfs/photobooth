@@ -217,7 +217,7 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
-            <small className="muted">Emails are masked. Payment details are never shown here — use the Stripe Dashboard.</small>
+            <small className="muted">Emails are masked. Payment details are never shown here — use the PayMongo Dashboard.</small>
           </section>
         </div>
       ) : null}
