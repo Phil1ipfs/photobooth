@@ -7,7 +7,7 @@ import { PrefsProvider } from './context/PrefsContext';
 import { StripsProvider } from './context/StripsContext';
 import { MusicProvider } from './context/MusicContext';
 import Landing from './pages/Landing';
-import { LoginPage, SignupPage } from './pages/Auth';
+import { LoginPage, ResetPasswordPage, SignupPage } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Templates from './pages/Templates';
 import Booth from './pages/Booth';
@@ -21,6 +21,7 @@ const ROUTES = {
   '/': [Landing, 'public'],
   '/login': [LoginPage, 'guest'],
   '/signup': [SignupPage, 'public'],
+  '/reset-password': [ResetPasswordPage, 'public'],
   '/dashboard': [Dashboard, 'auth'],
   '/templates': [Templates, 'public'],
   '/booth': [Booth, 'public'],
@@ -33,8 +34,11 @@ const ROUTES = {
 
 function Routes() {
   const { path, search } = useRouter();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [Page, access] = ROUTES[path] || [NotFound, 'public'];
+
+  // Wait for the saved session before deciding a protected page needs a login.
+  if (!ready && access !== 'public') return <div className="route-loading" role="status" aria-label="Loading"><span className="btn-spinner" /></div>;
 
   if (access === 'auth' && !user) return <Redirect to={`/login?next=${encodeURIComponent(path + search)}`} />;
   if (access === 'guest' && user) return <Redirect to="/dashboard" />;

@@ -5,23 +5,36 @@ import { downloadBlob, printBlob, shareBlob, stripFileName } from '../../lib/sha
 
 /** Actions on saved strips (My Photos, Dashboard, Favorites). */
 export default function useStripActions() {
-  const { toggleFavorite, remove } = useStrips();
+  const { toggleFavorite, remove, getBlob } = useStrips();
   const toast = useToast();
 
-  const download = useCallback(
-    (s) => {
-      downloadBlob(s.blob, stripFileName(s.templateName, new Date(s.createdAt)));
-      toast.success('Downloaded!', 'Your photo strip was saved to your device.');
+  const withBlob = useCallback(
+    async (s, fn) => {
+      try {
+        await fn(await getBlob(s));
+      } catch (err) {
+        toast.error('Something went wrong', err.message);
+      }
     },
-    [toast]
+    [getBlob, toast]
+  );
+
+  const download = useCallback(
+    (s) =>
+      withBlob(s, (blob) => {
+        downloadBlob(blob, stripFileName(s.templateName, new Date(s.createdAt)));
+        toast.success('Downloaded!', 'Your photo strip was saved to your device.');
+      }),
+    [withBlob, toast]
   );
 
   const share = useCallback(
-    async (s) => {
-      const res = await shareBlob(s.blob, stripFileName(s.templateName, new Date(s.createdAt)));
-      if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the strip so you can share it.');
-    },
-    [toast]
+    (s) =>
+      withBlob(s, async (blob) => {
+        const res = await shareBlob(blob, stripFileName(s.templateName, new Date(s.createdAt)));
+        if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the strip so you can share it.');
+      }),
+    [withBlob, toast]
   );
 
   const favorite = useCallback(
@@ -47,7 +60,7 @@ export default function useStripActions() {
     [remove, toast]
   );
 
-  const print = useCallback((s) => printBlob(s.blob), []);
+  const print = useCallback((s) => withBlob(s, (blob) => printBlob(blob)), [withBlob]);
 
   return { download, share, favorite, del, print };
 }

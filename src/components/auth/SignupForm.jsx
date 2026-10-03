@@ -6,7 +6,7 @@ import SocialButtons from './SocialButtons';
 import { useAuth } from '../../context/AuthContext';
 import { PASSWORD_RULES, validateEmail, validateName, validateNewPassword } from '../../lib/validation';
 
-export default function SignupForm({ onSuccess }) {
+export default function SignupForm({ onSuccess, next }) {
   const { signUp } = useAuth();
   const [values, setValues] = useState({ name: '', email: '', password: '', confirm: '' });
   const [errors, setErrors] = useState({});
@@ -43,8 +43,8 @@ export default function SignupForm({ onSuccess }) {
     if (loading || !validate()) return;
     setLoading(true);
     try {
-      const user = await signUp(values);
-      onSuccess(user);
+      const result = await signUp(values);
+      onSuccess(result);
     } catch (err) {
       if (err.field) setErrors({ [err.field]: err.message });
       else setFormError(err.message || 'Something went wrong. Please try again.');
@@ -118,7 +118,7 @@ export default function SignupForm({ onSuccess }) {
           {loading ? 'Creating account…' : 'Sign Up'}
         </Button>
       </form>
-      <SocialButtons />
+      <SocialButtons next={next} />
     </>
   );
 }

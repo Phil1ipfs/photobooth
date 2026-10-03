@@ -1,34 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GoogleIcon, FacebookIcon } from '../common/Icon';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 /**
- * Social sign-in buttons. The app has no OAuth provider configured yet, so
- * these explain that instead of pretending to sign in. Wire `onProvider` to a
- * hosted auth SDK (Firebase, Supabase, Auth0…) to enable them.
+ * Google / Facebook sign-in through Supabase OAuth. Each provider must be
+ * enabled in Supabase → Authentication → Providers; until then Supabase
+ * returns an error and we show it as a toast.
  */
-export default function SocialButtons({ onProvider }) {
+export default function SocialButtons({ next = '/dashboard' }) {
+  const { signInWithProvider } = useAuth();
   const toast = useToast();
-  const handle = (provider) => () => {
-    if (onProvider) onProvider(provider);
-    else
-      toast.info(
-        `${provider} sign-in isn’t set up yet`,
-        'Social login needs a hosted auth provider. Please continue with email for now.'
-      );
+  const [busy, setBusy] = useState(null);
+
+  const handle = (provider, label) => async () => {
+    setBusy(provider);
+    try {
+      await signInWithProvider(provider, next); // redirects away on success
+    } catch (err) {
+      toast.error(`${label} sign-in unavailable`, err.message);
+      setBusy(null);
+    }
   };
+
   return (
     <>
       <div className="auth-divider" role="separator">
         <span>or</span>
       </div>
       <div className="social-btns">
-        <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('Google')}>
-          <GoogleIcon />
+        <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('google', 'Google')} disabled={!!busy}>
+          {busy === 'google' ? <span className="btn-spinner" aria-hidden="true" /> : <GoogleIcon />}
           Continue with Google
         </button>
-        <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('Facebook')}>
-          <FacebookIcon />
+        <button type="button" className="btn btn-outline btn-block social-btn" onClick={handle('facebook', 'Facebook')} disabled={!!busy}>
+          {busy === 'facebook' ? <span className="btn-spinner" aria-hidden="true" /> : <FacebookIcon />}
           Continue with Facebook
         </button>
       </div>

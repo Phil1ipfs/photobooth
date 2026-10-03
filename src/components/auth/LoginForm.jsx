@@ -7,7 +7,84 @@ import SocialButtons from './SocialButtons';
 import { Link } from '../../lib/router';
 import { useAuth } from '../../context/AuthContext';
 
-export default function LoginForm({ onSuccess }) {
+function ForgotPasswordModal({ open, onClose, initialEmail }) {
+  const { requestPasswordReset } = useAuth();
+  const [email, setEmail] = useState(initialEmail);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const close = () => {
+    onClose();
+    setTimeout(() => {
+      setSent(false);
+      setError('');
+    }, 250);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await requestPasswordReset(email);
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={close} title={sent ? 'Check your email' : 'Forgot your password?'} width={440}>
+      {sent ? (
+        <>
+          <p className="muted">
+            If an account exists for <strong>{email}</strong>, we’ve sent a link to reset your password. It may take a
+            minute to arrive — check your spam folder too.
+          </p>
+          <div className="modal-actions">
+            <Button onClick={close} data-autofocus>
+              Done
+            </Button>
+          </div>
+        </>
+      ) : (
+        <form onSubmit={submit} noValidate>
+          <p className="muted" style={{ marginBottom: 16 }}>
+            Enter the email you signed up with and we’ll send you a link to choose a new password.
+          </p>
+          <Input
+            label="Email address"
+            hideLabel
+            icon="mail"
+            type="email"
+            placeholder="Email address"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError('');
+            }}
+            error={error}
+            data-autofocus
+          />
+          <div className="modal-actions">
+            <Button variant="ghost" onClick={close}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={loading} icon="mail">
+              Send reset link
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+export default function LoginForm({ onSuccess, next }) {
   const { logIn } = useAuth();
   const [values, setValues] = useState({ identifier: '', password: '', remember: true });
   const [errors, setErrors] = useState({});
@@ -24,7 +101,7 @@ export default function LoginForm({ onSuccess }) {
 
   const validate = () => {
     const er = {};
-    if (!values.identifier.trim()) er.identifier = 'Please enter your email or username.';
+    if (!values.identifier.trim()) er.identifier = 'Please enter your email address.';
     if (!values.password) er.password = 'Please enter your password.';
     setErrors(er);
     return !Object.keys(er).length;
@@ -54,11 +131,12 @@ export default function LoginForm({ onSuccess }) {
           </div>
         )}
         <Input
-          label="Email or Username"
+          label="Email address"
           hideLabel
-          icon="user"
-          placeholder="Email or Username"
-          autoComplete="username"
+          icon="mail"
+          type="email"
+          placeholder="Email address"
+          autoComplete="email"
           value={values.identifier}
           onChange={set('identifier')}
           error={errors.identifier}
@@ -86,20 +164,14 @@ export default function LoginForm({ onSuccess }) {
           {loading ? 'Logging in…' : 'Log In'}
         </Button>
       </form>
-      <SocialButtons />
+      <SocialButtons next={next} />
 
-      <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="Forgot your password?" width={440}>
-        <p className="muted">
-          PhotoBooth accounts are stored securely on this device, so we can’t email a reset link. If you’re still logged in
-          on another tab, you can change your password in <strong>Settings</strong>. Otherwise you can create a new account.
-        </p>
-        <div className="modal-actions">
-          <Button variant="ghost" onClick={() => setForgotOpen(false)}>
-            Back to log in
-          </Button>
-          <Button to="/signup">Create account</Button>
-        </div>
-      </Modal>
+      <ForgotPasswordModal
+        key={forgotOpen ? 'open' : 'closed'}
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        initialEmail={values.identifier.trim()}
+      />
     </>
   );
 }

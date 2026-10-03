@@ -56,8 +56,12 @@ function ProfileSection() {
     if (Object.keys(er).length) return;
     setSaving(true);
     try {
-      await updateProfile({ name, email });
-      toast.success('Profile updated');
+      const { emailChangePending } = await updateProfile({ name, email });
+      if (emailChangePending) {
+        toast.info('Confirm your new email', `We sent a link to ${email.trim()}. Your email changes once you click it.`);
+      } else {
+        toast.success('Profile updated');
+      }
     } catch (err) {
       if (err.field) setErrors({ [err.field]: err.message });
       else toast.error('Couldn’t save profile', err.message);
@@ -227,7 +231,7 @@ function AccountSection() {
     setDeleting(true);
     try {
       await deleteAccount(delPw);
-      toast.info('Account deleted', 'Your account and saved strips were removed from this device.');
+      toast.info('Account deleted', 'Your account and all saved strips were permanently deleted.');
       navigate('/', { replace: true });
     } catch (err) {
       setDelError(err.message);

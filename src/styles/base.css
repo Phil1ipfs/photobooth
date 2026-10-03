@@ -182,3 +182,16 @@ button {
     transition-duration: 1ms !important;
   }
 }
+
+.route-loading {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: var(--primary-ink);
+}
+
+.route-loading .btn-spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
