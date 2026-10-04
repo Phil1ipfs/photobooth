@@ -29,6 +29,7 @@ const fromRow = (r) => ({
   height: r.height,
   favorite: r.favorite,
   createdAt: r.created_at,
+  creationId: r.creation_id || null,
   mediaType: r.media_type || 'photo',
   posterPath: r.poster_path || null,
   mimeType: r.mime_type || null,

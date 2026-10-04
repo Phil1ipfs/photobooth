@@ -140,3 +140,20 @@ test('usage updates are reported from claims', async () => {
   await gate.ensureCreation();
   expect(seen.at(-1)).toEqual({ used: 1, limit: 2, unlimited: false });
 });
+
+test('unlimited plans: a changed design gets its own creation (each creation is saved once)', async () => {
+  for (const tier of ['premium', 'admin']) {
+    const db = fakeDb({ tier });
+    const gate = createStripGate({ api: db.api });
+    await gate.ensureCreation();
+    await gate.authorizeExport(sig(A, 'classic'));
+    const first = gate.state.id;
+    const r = await gate.authorizeExport(sig(A, 'magazine')); // switched template after saving
+    expect(r).toEqual({ allowed: true, created: true });
+    expect(gate.state.id).not.toBe(first);
+    // re-exporting the same design keeps the same creation (no duplicate rows)
+    const second = gate.state.id;
+    await gate.authorizeExport(sig(A, 'magazine'));
+    expect(gate.state.id).toBe(second);
+  }
+});

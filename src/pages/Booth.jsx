@@ -639,13 +639,37 @@ export default function Booth() {
     return promise;
   };
 
-  const save = async (favorite = false) => {
+  // Saving is idempotent: one record per photostrip creation (strips_creation_unique).
+  const savingRef = useRef(null); // in-flight save, shared by Save / ♡
+  const alreadySaved = async (creationId, favorite) => {
+    const existing = strips.strips.find((x) => x.creationId && x.creationId === creationId);
+    if (!existing) return null;
+    if (favorite && !existing.favorite) await strips.toggleFavorite(existing.id);
+    const s = { id: existing.id, favorite: favorite || existing.favorite, already: true };
+    setSaved(s);
+    return s;
+  };
+
+  const save = (favorite = false) => {
+    if (!savingRef.current) {
+      savingRef.current = saveOnce(favorite).finally(() => {
+        savingRef.current = null;
+      });
+    }
+    return savingRef.current;
+  };
+
+  const saveOnce = async (favorite = false) => {
     if (!user) {
       toast.info('Log in to save', 'Your photos will be waiting for you right here.');
       navigate('/login?next=/booth');
       return null;
     }
     if (saved) return saved;
+    const creationId = gate.state.id; // authorised for this exact composition by withAction
+    // This strip is already in My Photos (e.g. saved before switching mode or refreshing).
+    const existing = await alreadySaved(creationId, favorite);
+    if (existing) return existing;
     const live_ = mode === 'live' && live ? await liveMedia() : null;
     const { blob, width, height } = live_ ? { blob: live_.video, width: live_.width, height: live_.height } : await exportBlob();
     let rec;
@@ -659,9 +683,16 @@ export default function Booth() {
         templateName: template.name,
         layoutId: layout.id,
         favorite,
-        creationId: gate.state.id,
+        creationId,
       });
     } catch (err) {
+      // Same creation saved meanwhile (another tab/device): treat as already saved.
+      if (/strips_creation_unique/i.test(err.message)) {
+        await strips.reload();
+        const s = { id: null, favorite, already: true };
+        setSaved(s);
+        return s;
+      }
       if (/creation_required|strip_limit_reached/i.test(err.message)) {
         showLimit();
         return null;
@@ -688,11 +719,13 @@ export default function Booth() {
       toast.info('Already saved', 'This strip is in My Photos.');
       return;
     }
-    if (await save()) toast.success('Saved to My Photos', 'Find it any time in your gallery.');
+    const s = await save();
+    if (s?.already) toast.info('Already in My Photos', 'This strip is saved — find it in your gallery.');
+    else if (s) toast.success('Saved to My Photos', 'Find it any time in your gallery.');
   });
 
   const favorite = withAction('favorite', async () => {
-    if (saved) {
+    if (saved?.id) {
       await strips.toggleFavorite(saved.id);
       setSaved((s) => ({ ...s, favorite: !s.favorite }));
       toast.success(saved.favorite ? 'Removed from favorites' : 'Added to favorites');

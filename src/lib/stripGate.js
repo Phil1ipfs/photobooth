@@ -115,18 +115,16 @@ export function createStripGate({ api = stripApi, initial = null, onChange = () 
     authorizeExport(signature, meta) {
       return run(async () => {
         if (state.id && state.signature === signature) return { allowed: true, created: false };
-        let created = false;
-        if (!state.id) {
-          const c = await claim(meta);
-          if (!c.allowed) return c;
-          created = true;
-        }
-        if ((await api.finalize(state.id, signature, meta))?.allowed) {
+        // An unexported (draft) creation is locked to this composition on first export.
+        if (state.id && !state.signature && (await api.finalize(state.id, signature, meta))?.allowed) {
           set({ id: state.id, signature });
-          return { allowed: true, created };
+          return { allowed: true, created: false };
         }
-        // A different strip than the one already exported (or an unknown id) needs a
-        // new creation. If that's refused, keep the current one (it can still be re-exported).
+        // No creation yet, one already locked to a DIFFERENT composition, or an unknown id:
+        // this is a new photostrip and needs its own creation — on every plan. (Each
+        // creation can be saved once — strips_creation_unique — so it must never be reused
+        // for another design, even where the plan is unlimited.) If that's refused, keep
+        // the current one (it can still be re-exported).
         const previous = state;
         set({ id: null, signature: null });
         const c = await claim(meta);
