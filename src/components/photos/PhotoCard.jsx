@@ -9,6 +9,11 @@ export default function PhotoCard({ strip, onOpen, onFavorite, onDownload, onSha
     <article className="photo-card card card-hover" style={style}>
       <button type="button" className="photo-card-media" onClick={() => onOpen?.(strip)} aria-label={`Open ${strip.templateName} strip from ${formatDate(strip.createdAt)}`}>
         <img src={strip.url} alt="" loading="lazy" className="strip-img" />
+        {strip.mediaType === 'live_strip' && (
+          <span className="live-tag" aria-label="Live Strip">
+            <i aria-hidden="true" /> LIVE
+          </span>
+        )}
       </button>
       <div className={`photo-card-body${onShare || onDelete ? ' photo-card-body-full' : ''}`}>
         <div className="photo-card-meta">

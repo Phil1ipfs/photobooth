@@ -488,22 +488,41 @@ export async function renderStrip(template, options = {}) {
   const images = await Promise.all(
     Array.from({ length: layout.photoCount }, (_, i) => (photos[i] ? loadImage(photos[i]).catch(() => null) : null))
   );
+  const renderer = await createStripRenderer(template, { aspect, layout, scale, date, placeholders, filter });
+  const canvas = document.createElement('canvas');
+  canvas.width = renderer.width;
+  canvas.height = renderer.height;
+  renderer.draw(canvas.getContext('2d'), images);
+  return canvas;
+}
+
+/**
+ * A reusable renderer for one template/layout: draw(ctx, images) paints the whole
+ * strip with the given per-slot images (any drawImage source — img, canvas,
+ * ImageBitmap). Used for animated Live Strips, where it runs once per frame.
+ */
+export async function createStripRenderer(template, options = {}) {
+  const { aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto' } = options;
+  await ensureFonts();
   const geo = computeLayout(template, aspect, layout);
   const { W, H, slots } = geo;
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(W * scale);
-  canvas.height = Math.round(H * scale);
-  const ctx = canvas.getContext('2d');
-  ctx.scale(scale, scale);
-  ctx.imageSmoothingQuality = 'high';
-
-  drawBackground(ctx, template, W, H);
   const decor = template.decor || [];
-  decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
-  slots.forEach((r, i) => drawSlot(ctx, template, r, images[i], i, { placeholders, filter }));
-  decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
-  (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date));
-  return canvas;
+  return {
+    width: Math.round(W * scale),
+    height: Math.round(H * scale),
+    slotCount: slots.length,
+    draw(ctx, images) {
+      ctx.save();
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.imageSmoothingQuality = 'high';
+      drawBackground(ctx, template, W, H);
+      decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
+      slots.forEach((r, i) => drawSlot(ctx, template, r, images[i] || null, i, { placeholders, filter }));
+      decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
+      (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date));
+      ctx.restore();
+    },
+  };
 }
 
 /* ---------- Cached previews (gallery thumbnails) ---------- */

@@ -14,13 +14,35 @@ export default function PhotoViewer({ strip, onClose, actions }) {
       {strip && (
         <div className="viewer">
           <div className="viewer-media">
-            <img src={strip.url} alt={`${strip.templateName} strip`} className="strip-img" />
+            {strip.mediaType === 'live_strip' && strip.videoUrl ? (
+              <span className="live-player">
+                {strip.mimeType === 'image/gif' ? (
+                  <img src={strip.videoUrl} alt={`${strip.templateName} Live Strip`} className="strip-img" />
+                ) : (
+                <video
+                  src={strip.videoUrl}
+                  poster={strip.url || undefined}
+                  className="strip-img"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-label={`${strip.templateName} Live Strip`}
+                />
+                )}
+                <span className="live-tag" aria-hidden="true">
+                  <i /> LIVE
+                </span>
+              </span>
+            ) : (
+              <img src={strip.url} alt={`${strip.templateName} strip`} className="strip-img" />
+            )}
           </div>
           <div className="viewer-body">
             <span className="badge">{strip.templateName}</span>
             <h2 className="viewer-title">{formatDate(strip.createdAt, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h2>
             <p className="muted">
-              {new Date(strip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {strip.width}×{strip.height}px
+              {new Date(strip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {strip.mediaType === 'live_strip' ? 'Live Strip · ' : ''}{strip.width}×{strip.height}px
             </p>
             <div className="viewer-fav">
               <FavoriteButton active={strip.favorite} onToggle={() => actions.favorite(strip)} size="md" label="favorites" />
@@ -33,9 +55,11 @@ export default function PhotoViewer({ strip, onClose, actions }) {
               <Button variant="outline" icon="share" block onClick={() => actions.share(strip)}>
                 Share
               </Button>
-              <Button variant="outline" icon="printer" block onClick={() => actions.print(strip)}>
-                Print
-              </Button>
+              {strip.mediaType !== 'live_strip' && (
+                <Button variant="outline" icon="printer" block onClick={() => actions.print(strip)}>
+                  Print
+                </Button>
+              )}
               {confirm ? (
                 <div className="confirm-del" role="alert">
                   <p>Delete this strip permanently?</p>

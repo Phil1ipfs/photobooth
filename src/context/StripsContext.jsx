@@ -50,9 +50,14 @@ export function StripsProvider({ children }) {
     async (data) => {
       if (!userId) throw new Error('Please log in to save your photos.');
       const rec = await store.saveStrip(userId, data);
-      const url = URL.createObjectURL(data.blob);
+      const url = URL.createObjectURL(data.poster || data.blob);
       localUrls.current.push(url);
-      const withBlob = { ...rec, url, blob: data.blob };
+      let withBlob = { ...rec, url, blob: data.blob };
+      if (data.poster) {
+        const videoUrl = URL.createObjectURL(data.blob);
+        localUrls.current.push(videoUrl);
+        withBlob = { ...withBlob, videoUrl };
+      }
       setStrips((s) => [withBlob, ...s]);
       return withBlob;
     },

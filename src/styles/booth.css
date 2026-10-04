@@ -1343,3 +1343,139 @@ kbd {
     max-width: none !important;
   }
 }
+
+/* ---------- Live Strip mode ---------- */
+.mode-switch {
+  display: flex;
+  width: fit-content;
+  margin: 14px auto 0;
+}
+.mode-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 112px;
+  justify-content: center;
+  cursor: pointer;
+}
+.mode-switch button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.take-btn-live {
+  background: linear-gradient(120deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 70%, #ff7aa2) 100%);
+}
+
+.camera-view.is-recording {
+  box-shadow: 0 0 0 3px color-mix(in srgb, #e5354f 70%, transparent);
+}
+.rec-indicator {
+  position: absolute;
+  inset: auto 16px 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  pointer-events: none;
+}
+.rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  background: rgba(20, 8, 12, 0.62);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(6px);
+}
+.rec-pill i,
+.live-tag i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b5c;
+  animation: rec-blink 1s steps(2, start) infinite;
+}
+.rec-bar {
+  width: min(260px, 70%);
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.28);
+  overflow: hidden;
+}
+.rec-bar span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  transform-origin: left;
+  transition: transform 0.12s linear;
+}
+@keyframes rec-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.live-player {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.live-player canvas.strip-img,
+.live-player video.strip-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.live-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(20, 8, 12, 0.66);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+}
+.live-tag-sm {
+  top: auto;
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+.live-tag-sm i {
+  width: 6px;
+  height: 6px;
+}
+.photo-card-media {
+  position: relative;
+}
+.live-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 8, 12, 0.6);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-pill i,
+  .live-tag i {
+    animation: none;
+  }
+}

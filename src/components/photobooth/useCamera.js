@@ -86,29 +86,40 @@ export default function useCamera(deviceId) {
 
   /** Grab a frame cropped to `aspect`; returns a JPEG data URL (or null if not ready). */
   const capture = useCallback(({ aspect = 4 / 3, mirror = true, maxWidth = 1280 } = {}) => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return null;
-    const vw = v.videoWidth;
-    const vh = v.videoHeight;
-    let sw = vw;
-    let sh = vw / aspect;
-    if (sh > vh) {
-      sh = vh;
-      sw = vh * aspect;
-    }
-    const outW = Math.min(maxWidth, Math.round(sw));
-    const outH = Math.round(outW / aspect);
-    const c = document.createElement('canvas');
-    c.width = outW;
-    c.height = outH;
-    const ctx = c.getContext('2d');
-    if (mirror) {
-      ctx.translate(outW, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(v, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, outW, outH);
-    return c.toDataURL('image/jpeg', 0.92);
+    const c = drawVideoFrame(videoRef.current, { aspect, mirror, maxWidth });
+    return c ? c.toDataURL('image/jpeg', 0.92) : null;
   }, []);
 
   return { videoRef, status, error, devices, activeDeviceId, retry, capture };
+}
+
+/**
+ * Draw the current video frame, centre-cropped to `aspect` (and mirrored), onto
+ * `canvas` (created if omitted — pass one to reuse it). Returns the canvas, or
+ * null when the video isn't playing yet. Shared by photo capture and Live Strips.
+ */
+export function drawVideoFrame(video, { aspect = 4 / 3, mirror = true, maxWidth = 1280, canvas } = {}) {
+  if (!video || !video.videoWidth) return null;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  let sw = vw;
+  let sh = vw / aspect;
+  if (sh > vh) {
+    sh = vh;
+    sw = vh * aspect;
+  }
+  const outW = Math.min(maxWidth, Math.round(sw));
+  const outH = Math.round(outW / aspect);
+  const c = canvas || document.createElement('canvas');
+  if (c.width !== outW) c.width = outW;
+  if (c.height !== outH) c.height = outH;
+  const ctx = c.getContext('2d');
+  ctx.save();
+  if (mirror) {
+    ctx.translate(outW, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, outW, outH);
+  ctx.restore();
+  return c;
 }

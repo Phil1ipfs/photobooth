@@ -3,12 +3,12 @@ import Icon from '../common/Icon';
 import Button from '../common/Button';
 
 /** Live camera viewport with LIVE badge, framing corners, countdown and capture flash. */
-export default function CameraPreview({ camera, aspect, mirror, countdown, shotLabel, flashing }) {
+export default function CameraPreview({ camera, aspect, mirror, countdown, shotLabel, flashing, recording = false, recordProgress = 0 }) {
   const { videoRef, status, error, retry } = camera;
   const ready = status === 'ready';
 
   return (
-    <div className={`camera-view${ready ? ' is-live' : ''}`} style={{ '--aspect': aspect }}>
+    <div className={`camera-view${ready ? ' is-live' : ''}${recording ? ' is-recording' : ''}`} style={{ '--aspect': aspect }}>
       <video
         ref={videoRef}
         className="camera-video"
@@ -43,7 +43,7 @@ export default function CameraPreview({ camera, aspect, mirror, countdown, shotL
         </div>
       )}
 
-      {ready && countdown === 0 && !flashing && (
+      {ready && countdown === 0 && !flashing && !recording && (
         <div className="camera-hint" aria-hidden="true">
           <span className="camera-hint-icon">
             <Icon name="camera" size={26} />
@@ -68,6 +68,17 @@ export default function CameraPreview({ camera, aspect, mirror, countdown, shotL
             {countdown}
           </span>
           <span className="countdown-label">{shotLabel}</span>
+        </div>
+      )}
+
+      {recording && (
+        <div className="rec-indicator" role="status">
+          <span className="rec-pill">
+            <i aria-hidden="true" /> REC · Live Strip
+          </span>
+          <span className="rec-bar" aria-hidden="true">
+            <span style={{ transform: `scaleX(${recordProgress})` }} />
+          </span>
         </div>
       )}
 

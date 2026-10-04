@@ -3,6 +3,13 @@ import { useStrips } from '../../context/StripsContext';
 import { useToast } from '../../context/ToastContext';
 import { downloadBlob, printBlob, shareBlob, stripFileName } from '../../lib/share';
 import { track } from '../../lib/analytics';
+import { extensionFor, liveFileName } from '../../lib/liveStrip';
+
+/** Download name: PNG for photo strips, .webm/.mp4 for Live Strips. */
+const fileNameFor = (s, blob) =>
+  s.mediaType === 'live_strip'
+    ? liveFileName(s.templateName, extensionFor(blob.type || s.mimeType || ''), new Date(s.createdAt))
+    : stripFileName(s.templateName, new Date(s.createdAt));
 
 /** Actions on saved strips (My Photos, Dashboard, Favorites). */
 export default function useStripActions() {
@@ -23,7 +30,7 @@ export default function useStripActions() {
   const download = useCallback(
     (s) =>
       withBlob(s, (blob) => {
-        downloadBlob(blob, stripFileName(s.templateName, new Date(s.createdAt)));
+        downloadBlob(blob, fileNameFor(s, blob));
         track('photostrip_downloaded', { template: s.templateId, layout: s.layoutId || 'strip-1x4', source: 'my_photos' });
         toast.success('Downloaded!', 'Your photo strip was saved to your device.');
       }),
@@ -33,7 +40,7 @@ export default function useStripActions() {
   const share = useCallback(
     (s) =>
       withBlob(s, async (blob) => {
-        const res = await shareBlob(blob, stripFileName(s.templateName, new Date(s.createdAt)));
+        const res = await shareBlob(blob, fileNameFor(s, blob));
         if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the strip so you can share it.');
       }),
     [withBlob, toast]

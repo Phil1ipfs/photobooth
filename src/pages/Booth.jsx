@@ -10,6 +10,7 @@ import PhotoSlots from '../components/photobooth/PhotoSlots';
 import TemplateSelector from '../components/photobooth/TemplateSelector';
 import StripPreview from '../components/photobooth/StripPreview';
 import MusicPlayer from '../components/photobooth/MusicPlayer';
+import LiveStripPlayer from '../components/photobooth/LiveStripPlayer';
 import useCamera from '../components/photobooth/useCamera';
 import { Link, useRouter } from '../lib/router';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,20 @@ import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { FREE_STRIP_LIMIT } from '../config/catalog';
 import { compositionSignature, createStripGate } from '../lib/stripGate';
+import {
+  LIVE,
+  boomerangOrder,
+  captureFrames,
+  createLiveRenderer,
+  encodeGif,
+  extensionFor,
+  liveFileName,
+  recordVideo,
+  releaseFrames,
+  renderPoster,
+  slotFrames,
+  videoMimeType,
+} from '../lib/liveStrip';
 import { track } from '../lib/analytics';
 import { ASPECTS, DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID, TEMPLATES, getLayout, getTemplate } from '../templates/data';
 import { renderStrip } from '../templates/render';
@@ -79,6 +94,18 @@ export default function Booth() {
   const [resultOpen, setResultOpen] = useState(false);
   const [busyAction, setBusyAction] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // ----- Live Strip mode (boomerang). Photo mode state above is untouched by it. -----
+  const mode = prefs.boothMode === 'live' ? 'live' : 'photo';
+  // { id, frames } — frames are canvases captured once per Live Strip (never per-frame state).
+  const [live, setLive] = useState(null);
+  const [livePhase, setLivePhase] = useState(null); // 'countdown' | 'recording' | null
+  const [liveProgress, setLiveProgress] = useState(0);
+  const liveExport = useRef({}); // cached video/poster for the current composition
+  useEffect(() => {
+    liveExport.current = {};
+    return () => releaseFrames(live?.frames); // free canvas memory when replaced / on leave
+  }, [live]);
 
   // ----- Free photostrip allowance (enforced by the database; see lib/stripGate) -----
   const { stripUsage, setStripUsage } = ent;
@@ -167,7 +194,7 @@ export default function Booth() {
   }, [templateId, prefs.lastTemplate, setPref]);
 
   // Any change to the composition means it's no longer the saved version.
-  useEffect(() => setSaved(null), [photos, templateId, prefs.aspect, prefs.layout]);
+  useEffect(() => setSaved(null), [photos, templateId, prefs.aspect, prefs.layout, prefs.filter, live, mode]);
 
   // Layout changed: only move the selection to the first empty visible slot.
   // Captured photos are left untouched (switching back shows them all again).
@@ -215,6 +242,7 @@ export default function Booth() {
     runRef.current++;
     setBusy(false);
     setCount(0);
+    setLivePhase(null);
   };
 
   const claimingRef = useRef(false);
@@ -302,9 +330,103 @@ export default function Booth() {
     }
   };
 
+  /** Live Strip: countdown → ~2 s of frames → boomerang preview. */
+  const takeLive = async () => {
+    if (livePhase === 'countdown') {
+      stop();
+      return;
+    }
+    if (livePhase || claimingRef.current) return;
+    if (camera.status !== 'ready') {
+      toast.error('Camera not ready', camera.error || 'Please wait for the camera to start.');
+      return;
+    }
+    if (!user) {
+      toast.info('Log in to create your strip', `Free accounts include ${FREE_STRIP_LIMIT} photostrips — it only takes a minute.`);
+      navigate('/login?next=/booth');
+      return;
+    }
+    // A Live Strip is a photostrip creation like any other (Free: counts toward the 2).
+    gate.beginStrip();
+    claimingRef.current = true;
+    let res;
+    try {
+      res = await gate.ensureCreation({ template: template.id, layout: layout.id });
+    } catch (err) {
+      toast.error('Couldn’t start your strip', err.message);
+      return;
+    } finally {
+      claimingRef.current = false;
+    }
+    if (!res.allowed) {
+      showLimit();
+      return;
+    }
+
+    const run = ++runRef.current;
+    setResultOpen(false);
+    setLivePhase('countdown');
+    for (let sec = prefs.countdown || 3; sec > 0; sec--) {
+      if (runRef.current !== run) return;
+      setCount(sec);
+      if (prefs.sound) playBeep(sec === 1);
+      await wait(1000);
+    }
+    if (runRef.current !== run) return;
+    setCount(0);
+    setLiveProgress(0);
+    setLivePhase('recording');
+    if (prefs.sound) playShutter();
+    let frames;
+    try {
+      frames = await captureFrames(camera.videoRef.current, {
+        aspect,
+        mirror: prefs.mirror,
+        onProgress: setLiveProgress,
+        isCancelled: () => runRef.current !== run,
+      });
+    } catch (err) {
+      toast.error('Capture failed', err.message);
+      setLivePhase(null);
+      return;
+    }
+    if (runRef.current !== run || frames.length < LIVE.frames) {
+      releaseFrames(frames);
+      return;
+    }
+    setLivePhase(null);
+    triggerFlash();
+    const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    setLive({ id, frames });
+    setResultOpen(true);
+    const stripMeta = { template: template.id, layout: layout.id, filter: prefs.filter || 'auto', kind: 'live' };
+    track('photostrip_created', stripMeta);
+    track('template_used', stripMeta);
+  };
+
+  const clearLive = () => {
+    stop();
+    gate.beginStrip();
+    setLive(null);
+    setResultOpen(false);
+  };
+
+  const setMode = (next) => {
+    if (busy || livePhase || next === mode) return;
+    setResultOpen(false);
+    setPref({ boothMode: next });
+  };
+
+  // Slot thumbnails for Live mode (one still per slot, matching the stagger).
+  const liveThumbs = useMemo(() => {
+    if (!live) return Array(slotCount).fill(null);
+    const ks = slotFrames(boomerangOrder(live.frames.length), slotCount, 0);
+    return ks.map((k) => live.frames[k]?.toDataURL('image/jpeg', 0.7) || null);
+  }, [live, slotCount]);
+
   // Keyboard shortcut: Space takes a photo (when not typing / on a control).
   const startRef = useRef(startCapture);
-  startRef.current = startCapture;
+  startRef.current = mode === 'live' ? takeLive : startCapture;
   useEffect(() => {
     const onKey = (e) => {
       if (e.code !== 'Space' || e.repeat) return;
@@ -339,6 +461,11 @@ export default function Booth() {
   const meta = () => ({ template: template.id, layout: layout.id });
 
   const ensurePhotos = () => {
+    if (mode === 'live') {
+      if (live) return true;
+      toast.info('No Live Strip yet', 'Press “Take Live Strip” first, then download or save it.');
+      return false;
+    }
     if (filled === 0) {
       toast.info('No photos yet', 'Take some photos first, then download your strip.');
       return false;
@@ -358,7 +485,14 @@ export default function Booth() {
       navigate('/login?next=/booth');
       return false;
     }
-    const signature = compositionSignature({ photos, templateId: template.id, layoutId: layout.id, filter: prefs.filter, aspect });
+    const signature = compositionSignature({
+      // A Live Strip is identified by its capture; a photo strip by its photos.
+      photos: mode === 'live' && live ? [`live:${live.id}`] : photos,
+      templateId: template.id,
+      layoutId: layout.id,
+      filter: prefs.filter,
+      aspect,
+    });
     const res = await gate.authorizeExport(signature, { template: template.id, layout: layout.id });
     if (!res.allowed) {
       showLimit();
@@ -385,6 +519,13 @@ export default function Booth() {
   };
 
   const download = withAction('download', async () => {
+    if (mode === 'live') {
+      const { video } = await liveMedia();
+      downloadBlob(video, liveFileName(template.name, extensionFor(video.type)));
+      track('photostrip_downloaded', { ...meta(), source: 'booth', kind: 'live' });
+      toast.success('Downloaded!', 'Your Live Strip was saved to your device.');
+      return;
+    }
     const hd = prefs.hd && hdAllowed;
     const { blob } = await exportBlob({ scale: hd ? 2 : 1 });
     downloadBlob(blob, stripFileName(template.name));
@@ -404,6 +545,20 @@ export default function Booth() {
     setPref({ hd: on });
   };
 
+  // ----- Live Strip export (video via MediaRecorder, GIF via gifenc) -----
+  const liveOpts = () => ({ aspect, layout, filter: prefs.filter });
+  /** The animation as a file (WebM / MP4, or GIF where video recording isn't supported) + poster. */
+  const liveMedia = async () => {
+    const key = [live.id, template.id, layout.id, prefs.filter, aspect].join('|');
+    if (liveExport.current.key === key) return liveExport.current;
+    const renderer = await createLiveRenderer(template, live.frames, { ...liveOpts(), scale: LIVE.exportScale });
+    const poster = await renderPoster(renderer);
+    if (videoMimeType()) toast.info('Creating your Live Strip…', 'This takes about 10 seconds.');
+    const video = videoMimeType() ? await recordVideo(renderer) : await encodeGif(template, live.frames, liveOpts());
+    liveExport.current = { key, video, poster, width: renderer.width, height: renderer.height };
+    return liveExport.current;
+  };
+
   const save = async (favorite = false) => {
     if (!user) {
       toast.info('Log in to save', 'Your photos will be waiting for you right here.');
@@ -411,10 +566,12 @@ export default function Booth() {
       return null;
     }
     if (saved) return saved;
-    const { blob, width, height } = await exportBlob();
+    const live_ = mode === 'live' && live ? await liveMedia() : null;
+    const { blob, width, height } = live_ ? { blob: live_.video, width: live_.width, height: live_.height } : await exportBlob();
     let rec;
     try {
       rec = await strips.save({
+        ...(live_ ? { mediaType: 'live_strip', poster: live_.poster } : {}),
         blob,
         width,
         height,
@@ -464,7 +621,20 @@ export default function Booth() {
     if (await save(true)) toast.success('Saved to favorites ♡', 'Find it under Favorites.');
   });
 
+  const downloadGif = withAction('gif', async () => {
+    const gif = await encodeGif(template, live.frames, liveOpts());
+    downloadBlob(gif, liveFileName(template.name, 'gif'));
+    track('photostrip_downloaded', { ...meta(), source: 'booth', kind: 'live_gif' });
+    toast.success('GIF downloaded!', 'Perfect for sharing in chats.');
+  });
+
   const share = withAction('share', async () => {
+    if (mode === 'live') {
+      const { video } = await liveMedia();
+      const res = await shareBlob(video, liveFileName(template.name, extensionFor(video.type)));
+      if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the Live Strip so you can share it.');
+      return;
+    }
     const { blob } = await exportBlob();
     const res = await shareBlob(blob, stripFileName(template.name));
     if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the strip so you can share it.');
@@ -475,12 +645,20 @@ export default function Booth() {
     printBlob(blob);
   });
 
-  const actions = [
-    { id: 'download', label: 'Download', icon: 'download', onClick: download },
-    { id: 'save', label: saved ? 'Saved' : 'Save', icon: saved ? 'check' : 'save', onClick: saveAction },
-    { id: 'share', label: 'Share', icon: 'share', onClick: share },
-    { id: 'print', label: 'Print', icon: 'printer', onClick: print },
-  ];
+  const actions =
+    mode === 'live'
+      ? [
+          { id: 'download', label: videoMimeType() ? 'Download video' : 'Download GIF', short: 'Video', icon: 'download', onClick: download, disabled: !live },
+          { id: 'gif', label: 'Download GIF', short: 'GIF', icon: 'image', onClick: downloadGif, disabled: !live },
+          { id: 'save', label: saved ? 'Saved' : 'Save', icon: saved ? 'check' : 'save', onClick: saveAction, disabled: !live },
+          { id: 'share', label: 'Share', icon: 'share', onClick: share, disabled: !live },
+        ]
+      : [
+          { id: 'download', label: 'Download', icon: 'download', onClick: download },
+          { id: 'save', label: saved ? 'Saved' : 'Save', icon: saved ? 'check' : 'save', onClick: saveAction },
+          { id: 'share', label: 'Share', icon: 'share', onClick: share },
+          { id: 'print', label: 'Print', icon: 'printer', onClick: print },
+        ];
 
   const onCamera = (id) => setPref({ cameraId: id });
   const cameraValue = prefs.cameraId || camera.activeDeviceId;
@@ -538,8 +716,10 @@ export default function Booth() {
             aspect={aspect}
             mirror={prefs.mirror}
             countdown={count}
-            shotLabel={shotLabel}
+            shotLabel={mode === 'live' ? 'Get ready — Live Strip!' : shotLabel}
             flashing={flash === 'frame'}
+            recording={livePhase === 'recording'}
+            recordProgress={liveProgress}
           />
           <CameraControls
             devices={camera.devices}
@@ -547,8 +727,38 @@ export default function Booth() {
             onCamera={onCamera}
             prefs={prefs}
             setPref={setPref}
-            disabled={busy}
+            disabled={busy || !!livePhase}
           />
+          <div className="mode-switch segmented" role="group" aria-label="Capture mode">
+            <button type="button" aria-pressed={mode === 'photo'} onClick={() => setMode('photo')} disabled={busy || !!livePhase}>
+              <span aria-hidden="true">📸</span> Photo
+            </button>
+            <button type="button" aria-pressed={mode === 'live'} onClick={() => setMode('live')} disabled={busy || !!livePhase}>
+              <span aria-hidden="true">🎞️</span> Live
+            </button>
+          </div>
+          {mode === 'live' ? (
+            <div className="camera-actions">
+              <Button
+                size="xl"
+                className={`take-btn take-btn-live${livePhase ? ' is-busy' : ''}`}
+                icon={livePhase === 'countdown' ? 'x' : 'sparkle'}
+                onClick={takeLive}
+                disabled={livePhase === 'recording' || (!livePhase && camera.status !== 'ready')}
+              >
+                {livePhase === 'recording'
+                  ? 'Recording…'
+                  : livePhase === 'countdown'
+                    ? 'Stop'
+                    : live
+                      ? 'Take New Live Strip'
+                      : 'Take Live Strip'}
+              </Button>
+              <Button size="xl" variant="outline" icon="trash" onClick={clearLive} disabled={!live || !!livePhase}>
+                Clear
+              </Button>
+            </div>
+          ) : (
           <div className="camera-actions">
             <Button
               size="xl"
@@ -563,8 +773,17 @@ export default function Booth() {
               Clear Photos
             </Button>
           </div>
+          )}
           <p className="camera-tip">
-            <kbd>Space</kbd> to take a photo · tap a slot to retake it
+            {mode === 'live' ? (
+              <>
+                <kbd>Space</kbd> to start · ~2 seconds, plays forward &amp; back
+              </>
+            ) : (
+              <>
+                <kbd>Space</kbd> to take a photo · tap a slot to retake it
+              </>
+            )}
           </p>
           {user && stripUsage && !stripUsage.unlimited && (
             <div className={`strip-usage${limitReached && !creation?.id ? ' is-full' : ''}`} role="status">
@@ -586,27 +805,32 @@ export default function Booth() {
           )}
         </section>
 
-        <PhotoSlots
-          photos={photos}
-          selected={selected}
-          onSelect={setSelected}
-          onRemove={removePhoto}
-          layout={layout}
-          aspect={aspect}
-          disabled={busy}
-        />
+        {mode === 'live' ? (
+          <PhotoSlots photos={liveThumbs} selected={-1} onSelect={() => {}} onRemove={() => {}} layout={layout} aspect={aspect} disabled live />
+        ) : (
+          <PhotoSlots
+            photos={photos}
+            selected={selected}
+            onSelect={setSelected}
+            onRemove={removePhoto}
+            layout={layout}
+            aspect={aspect}
+            disabled={busy}
+          />
+        )}
 
         <div className="booth-side">
           <TemplateSelector value={templateId} onChange={selectTemplate} aspect={aspect} layout={layout} favorites={favorites} />
           <StripPreview
             template={template}
             layout={layout}
-            photos={photos}
+            photos={mode === 'live' ? liveThumbs : photos}
+            live={mode === 'live' ? live || false : undefined}
             aspect={aspect}
             filter={prefs.filter}
             hd={prefs.hd}
             hdLocked={!hdAllowed}
-            onToggleHd={toggleHd}
+            onToggleHd={mode === 'live' ? undefined : toggleHd}
             onRendered={stableOnRendered}
             actions={actions}
             favorite={!!saved?.favorite}
@@ -623,7 +847,11 @@ export default function Booth() {
       <Modal open={resultOpen} onClose={() => setResultOpen(false)} width={520} className="result-modal">
         <div className="result">
           <div className="result-strip">
-            {previewUrl && <img src={previewUrl} alt={`Your finished ${template.name} strip`} className="strip-img" />}
+            {mode === 'live' && live ? (
+              <LiveStripPlayer template={template} frames={live.frames} layout={layout} aspect={aspect} filter={prefs.filter} />
+            ) : (
+              previewUrl && <img src={previewUrl} alt={`Your finished ${template.name} strip`} className="strip-img" />
+            )}
             <Sparkle size={16} className="deco-twinkle" style={{ left: -18, top: 30 }} />
             <DoodleHeart size={26} style={{ right: -26, bottom: 40 }} />
           </div>
@@ -632,13 +860,22 @@ export default function Booth() {
               <Icon name="sparkle" size={12} /> {template.name}
             </span>
             <h2 className="result-title">
-              Your memories are ready! <span aria-hidden="true">❤️</span>
+              {mode === 'live' ? 'Your Live Strip is ready!' : 'Your memories are ready!'} <span aria-hidden="true">❤️</span>
             </h2>
-            <p className="muted">Download your strip, keep it in My Photos, or strike another pose.</p>
+            <p className="muted">
+              {mode === 'live'
+                ? 'It plays forward and back on a loop. Download it as a video or GIF, or keep it in My Photos.'
+                : 'Download your strip, keep it in My Photos, or strike another pose.'}
+            </p>
             <div className="result-actions">
               <Button icon="download" block onClick={download} loading={busyAction === 'download'} data-autofocus>
-                Download
+                {mode === 'live' ? (videoMimeType() ? 'Download Video' : 'Download GIF') : 'Download'}
               </Button>
+              {mode === 'live' && videoMimeType() && (
+                <Button variant="outline" icon="image" block onClick={downloadGif} loading={busyAction === 'gif'}>
+                  Download GIF
+                </Button>
+              )}
               <Button
                 variant="outline"
                 icon={saved ? 'check' : 'save'}
@@ -648,7 +885,7 @@ export default function Booth() {
               >
                 {saved ? 'Saved to My Photos' : 'Save to My Photos'}
               </Button>
-              <Button variant="ghost" icon="refresh" block onClick={clearPhotos}>
+              <Button variant="ghost" icon="refresh" block onClick={mode === 'live' ? clearLive : clearPhotos}>
                 Create Another
               </Button>
             </div>

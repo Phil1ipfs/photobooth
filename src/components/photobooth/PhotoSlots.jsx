@@ -2,12 +2,12 @@ import React from 'react';
 import Icon from '../common/Icon';
 
 /** Photo slots laid out with CSS Grid to mirror the selected layout (columns × rows). */
-export default function PhotoSlots({ photos, layout, selected, onSelect, onRemove, aspect, disabled }) {
+export default function PhotoSlots({ photos, layout, selected, onSelect, onRemove, aspect, disabled, live = false }) {
   return (
     <div
       className={`slots card${layout.columns > 1 ? ' slots-multi' : ''}`}
       role="group"
-      aria-label={`Photo slots, ${layout.label} layout`}
+      aria-label={live ? `Live Strip slots, ${layout.label} layout` : `Photo slots, ${layout.label} layout`}
       style={{ '--cols': layout.columns, '--rows': layout.rows, '--count': layout.photoCount }}
     >
       {photos.map((src, i) => {
@@ -31,6 +31,11 @@ export default function PhotoSlots({ photos, layout, selected, onSelect, onRemov
           >
             {src ? <img src={src} alt="" /> : <Icon name="image" size={layout.columns > 2 ? 18 : 24} className="slot-empty-icon" />}
             <span className="slot-num">{i + 1}</span>
+            {live && src && (
+              <span className="live-tag live-tag-sm" aria-hidden="true">
+                <i /> LIVE
+              </span>
+            )}
           </button>
           {src && !disabled && (
             <button type="button" className="slot-remove" onClick={() => onRemove(i)} aria-label={`Remove photo ${i + 1}`}>

@@ -4,6 +4,7 @@ import { FavoriteButton, Sparkle, DoodleHeart } from '../common/misc';
 import { Skeleton } from '../common/misc';
 import { renderStrip } from '../../templates/render';
 import PremiumBadge from '../billing/PremiumBadge';
+import LiveStripPlayer from './LiveStripPlayer';
 
 /** Real-time rendered strip with action buttons. Reports the rendered URL via onRendered. */
 export default function StripPreview({
@@ -20,6 +21,7 @@ export default function StripPreview({
   hd,
   hdLocked,
   onToggleHd,
+  live, // undefined = photo mode; false = Live mode, nothing captured yet; { frames } = Live Strip
 }) {
   const [url, setUrl] = useState(null);
   const [rendering, setRendering] = useState(true);
@@ -46,7 +48,7 @@ export default function StripPreview({
   return (
     <section className="strip-panel card" aria-labelledby="strip-title">
       <div className="strip-panel-head">
-        <h2 id="strip-title">Your Photo Strip</h2>
+        <h2 id="strip-title">{live !== undefined ? 'Your Live Strip' : 'Your Photo Strip'}</h2>
         <span className="strip-panel-rule" aria-hidden="true" />
         <span className="strip-panel-tpl">{template.name}</span>
         <FavoriteButton active={favorite} onToggle={onFavorite} label="favorites" />
@@ -56,7 +58,9 @@ export default function StripPreview({
         <Sparkle size={14} className="deco-twinkle" style={{ left: '12%', top: '28%' }} />
         <Sparkle size={18} className="deco-twinkle" style={{ right: '10%', top: '40%', animationDelay: '1.2s' }} />
         <DoodleHeart size={22} style={{ left: '14%', top: '62%' }} />
-        {url ? (
+        {live ? (
+          <LiveStripPlayer template={template} frames={live.frames} layout={layout} aspect={aspect} filter={filter} className="strip-live" />
+        ) : url ? (
           <img
             key={`${template.id}-${layout.id}`}
             src={url}
@@ -69,7 +73,15 @@ export default function StripPreview({
       </div>
 
       <p className="strip-progress">
-        {count === layout.photoCount ? (
+        {live !== undefined ? (
+          live ? (
+            <>
+              <Icon name="check-circle" size={16} /> Live Strip ready · plays forward &amp; back
+            </>
+          ) : (
+            'Press “Take Live Strip” to record about 2 seconds'
+          )
+        ) : count === layout.photoCount ? (
           <>
             <Icon name="check-circle" size={16} /> All {layout.photoCount} photos captured
           </>
