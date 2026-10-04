@@ -27,10 +27,11 @@ import {
   encodeGif,
   extensionFor,
   liveFileName,
-  recordVideo,
+  exportMp4,
+  Mp4UnsupportedError,
+  mp4Likely,
   releaseFrames,
   renderPoster,
-  videoMimeType,
 } from '../lib/liveStrip';
 import { track } from '../lib/analytics';
 import { ASPECTS, DEFAULT_LAYOUT_ID, DEFAULT_TEMPLATE_ID, TEMPLATES, getLayout, getTemplate } from '../templates/data';
@@ -105,6 +106,9 @@ export default function Booth() {
   const [livePhase, setLivePhase] = useState(null); // 'countdown' | 'recording' | null
   const [liveProgress, setLiveProgress] = useState(0);
   const liveExport = useRef({}); // cached video/poster for the current composition
+  const liveExportJob = useRef(null); // in-flight export, shared by Download / Save / Share
+  const [videoProgress, setVideoProgress] = useState(null); // 0–1 while preparing the MP4
+  const canMp4 = mp4Likely();
   // What the current layout shows; `live` is null until at least one clip exists.
   const liveVisible = useMemo(() => fitPhotos(liveClips, slotCount), [liveClips, slotCount]);
   const live = useMemo(
@@ -561,7 +565,7 @@ export default function Booth() {
       const { video } = await liveMedia();
       downloadBlob(video, liveFileName(template.name, extensionFor(video.type)));
       track('photostrip_downloaded', { ...meta(), source: 'booth', kind: 'live' });
-      toast.success('Downloaded!', 'Your Live Strip was saved to your device.');
+      toast.success('Downloaded!', video.type === 'video/mp4' ? 'Your Live Strip MP4 was saved to your device.' : 'Your Live Strip was saved to your device.');
       return;
     }
     const hd = prefs.hd && hdAllowed;
@@ -586,15 +590,33 @@ export default function Booth() {
   // ----- Live Strip export (video via MediaRecorder, GIF via gifenc) -----
   const liveOpts = () => ({ aspect, layout, filter: prefs.filter });
   /** The animation as a file (WebM / MP4, or GIF where video recording isn't supported) + poster. */
-  const liveMedia = async () => {
+  const liveMedia = () => {
     const key = [live.id, template.id, layout.id, prefs.filter, aspect].join('|');
-    if (liveExport.current.key === key) return liveExport.current;
-    const renderer = await createLiveRenderer(template, live.clips, { ...liveOpts(), scale: LIVE.exportScale });
-    const poster = await renderPoster(renderer);
-    if (videoMimeType()) toast.info('Creating your Live Strip…', 'This takes about 10 seconds.');
-    const video = videoMimeType() ? await recordVideo(renderer) : await encodeGif(template, live.clips, liveOpts());
-    liveExport.current = { key, video, poster, width: renderer.width, height: renderer.height };
-    return liveExport.current;
+    if (liveExport.current.key === key) return Promise.resolve(liveExport.current);
+    if (liveExportJob.current?.key === key) return liveExportJob.current.promise; // already preparing
+    const promise = (async () => {
+      const renderer = await createLiveRenderer(template, live.clips, { ...liveOpts(), scale: LIVE.exportScale });
+      const poster = await renderPoster(renderer);
+      let video;
+      setVideoProgress(0);
+      try {
+        video = await exportMp4(renderer, { onProgress: setVideoProgress });
+      } catch (err) {
+        if (!(err instanceof Mp4UnsupportedError)) throw err;
+        // Never hand out a renamed WebM: explain, and use the GIF instead.
+        toast.info('MP4 isn’t supported on this browser', 'We made a GIF of your Live Strip instead.');
+        video = await encodeGif(template, live.clips, liveOpts());
+      } finally {
+        setVideoProgress(null);
+      }
+      liveExport.current = { key, video, poster, width: renderer.width, height: renderer.height };
+      return liveExport.current;
+    })();
+    liveExportJob.current = { key, promise };
+    promise.finally(() => {
+      if (liveExportJob.current?.promise === promise) liveExportJob.current = null;
+    });
+    return promise;
   };
 
   const save = async (favorite = false) => {
@@ -686,7 +708,14 @@ export default function Booth() {
   const actions =
     mode === 'live'
       ? [
-          { id: 'download', label: videoMimeType() ? 'Download video' : 'Download GIF', short: 'Video', icon: 'download', onClick: download, disabled: !live },
+          {
+            id: 'download',
+            label: videoProgress !== null ? `Preparing video… ${Math.round(videoProgress * 100)}%` : canMp4 ? 'Download MP4' : 'Download GIF',
+            short: videoProgress !== null ? `${Math.round(videoProgress * 100)}%` : canMp4 ? 'MP4' : 'GIF',
+            icon: 'download',
+            onClick: download,
+            disabled: !live,
+          },
           { id: 'gif', label: 'Download GIF', short: 'GIF', icon: 'image', onClick: downloadGif, disabled: !live },
           { id: 'save', label: saved ? 'Saved' : 'Save', icon: saved ? 'check' : 'save', onClick: saveAction, disabled: !live },
           { id: 'share', label: 'Share', icon: 'share', onClick: share, disabled: !live },
@@ -919,11 +948,17 @@ export default function Booth() {
                 : 'Download your strip, keep it in My Photos, or strike another pose.'}
             </p>
             <div className="result-actions">
-              <Button icon="download" block onClick={download} loading={busyAction === 'download'} data-autofocus>
-                {mode === 'live' ? (videoMimeType() ? 'Download Video' : 'Download GIF') : 'Download'}
+              <Button icon="download" block onClick={download} loading={busyAction === 'download'} disabled={!!busyAction} data-autofocus>
+                {mode === 'live'
+                  ? videoProgress !== null
+                    ? `Preparing video… ${Math.round(videoProgress * 100)}%`
+                    : canMp4
+                      ? 'Download MP4'
+                      : 'Download GIF'
+                  : 'Download'}
               </Button>
-              {mode === 'live' && videoMimeType() && (
-                <Button variant="outline" icon="image" block onClick={downloadGif} loading={busyAction === 'gif'}>
+              {mode === 'live' && canMp4 && (
+                <Button variant="outline" icon="image" block onClick={downloadGif} loading={busyAction === 'gif'} disabled={!!busyAction}>
                   Download GIF
                 </Button>
               )}
@@ -933,10 +968,11 @@ export default function Booth() {
                 block
                 onClick={saveAction}
                 loading={busyAction === 'save'}
+                disabled={!!busyAction}
               >
                 {saved ? 'Saved to My Photos' : 'Save to My Photos'}
               </Button>
-              <Button variant="ghost" icon="refresh" block onClick={mode === 'live' ? clearLive : clearPhotos}>
+              <Button variant="ghost" icon="refresh" block onClick={mode === 'live' ? clearLive : clearPhotos} disabled={!!busyAction}>
                 Create Another
               </Button>
             </div>

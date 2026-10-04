@@ -1,4 +1,4 @@
-import { boomerangOrder, slotFrames, extensionFor, liveFileName } from './liveStrip';
+import { boomerangOrder, slotFrames, extensionFor, liveFileName, mp4Size } from './liveStrip';
 
 test('boomerang plays forward then back without repeating the end frames', () => {
   expect(boomerangOrder(5)).toEqual([0, 1, 2, 3, 4, 3, 2, 1]);
@@ -32,5 +32,16 @@ test('file names and extensions', () => {
   expect(extensionFor('video/webm')).toBe('webm');
   expect(extensionFor('video/mp4')).toBe('mp4');
   expect(extensionFor('image/gif')).toBe('gif');
-  expect(liveFileName('Love Hearts', 'webm', new Date(5))).toBe('photobooth-live-love-hearts-5.webm');
+  const d = new Date(2026, 9, 4, 15, 30, 12);
+  expect(liveFileName('Love Hearts', 'mp4', d)).toBe('photobooth-video-2026-10-04-153012.mp4');
+  expect(liveFileName('Love Hearts', 'gif', d)).toBe('photobooth-live-2026-10-04-153012.gif');
+});
+
+test('MP4 size keeps the strip resolution, capped at 1080p, with even dimensions', () => {
+  expect(mp4Size(600, 1854)).toEqual({ width: 600, height: 1854 }); // 1×4 strip — unchanged
+  expect(mp4Size(782, 535)).toEqual({ width: 782, height: 536 }); // odd → even
+  expect(mp4Size(1200, 3708)).toEqual({ width: 622, height: 1920 }); // portrait capped to 1920 long side
+  expect(mp4Size(3840, 2160)).toEqual({ width: 1920, height: 1080 }); // landscape capped to 1080p
+  const { width, height } = mp4Size(1201, 801);
+  expect(width % 2 + height % 2).toBe(0);
 });
