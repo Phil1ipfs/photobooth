@@ -348,11 +348,11 @@ export default function Booth() {
 
   /** Live Strip: countdown → ~2 s of frames → boomerang preview. */
   const takeLive = async () => {
-    if (livePhase === 'countdown') {
-      stop();
+    if (livePhase) {
+      stop(); // Stop works during the countdown and while recording (clips already taken are kept)
       return;
     }
-    if (livePhase || claimingRef.current) return;
+    if (claimingRef.current) return;
     if (camera.status !== 'ready') {
       toast.error('Camera not ready', camera.error || 'Please wait for the camera to start.');
       return;
@@ -391,50 +391,70 @@ export default function Booth() {
       setLiveClips([]);
     }
 
+    // Same capture modes as photos: "Auto (fill all)" records the chosen slot and then
+    // every empty slot in one go; "Single" records just one clip (handy for retakes).
+    const before = freshStrip ? [] : liveVisible;
+    const targets =
+      prefs.captureMode === 'single'
+        ? [slot]
+        : [slot, ...Array.from({ length: slotCount }, (_, i) => i).filter((i) => i !== slot && !before[i])];
+
     const run = ++runRef.current;
     setResultOpen(false);
-    setLivePhase('countdown');
-    for (let sec = prefs.countdown || 3; sec > 0; sec--) {
-      if (runRef.current !== run) return;
-      setCount(sec);
-      if (prefs.sound) playBeep(sec === 1);
-      await wait(1000);
-    }
-    if (runRef.current !== run) return;
-    setCount(0);
-    setLiveProgress(0);
-    setLivePhase('recording');
-    if (prefs.sound) playShutter();
-    let frames;
-    try {
-      frames = await captureFrames(camera.videoRef.current, {
-        aspect,
-        mirror: prefs.mirror,
-        onProgress: setLiveProgress,
-        isCancelled: () => runRef.current !== run,
-      });
-    } catch (err) {
-      toast.error('Capture failed', err.message);
-      setLivePhase(null);
-      return;
-    }
-    if (runRef.current !== run || frames.length < LIVE.frames) {
-      releaseFrames(frames);
-      return;
+    let working = freshStrip ? [] : [...liveClipsRef.current];
+    for (let n = 0; n < targets.length; n++) {
+      const target = targets[n];
+      setLiveSelected(target);
+      setLivePhase('countdown');
+      // First clip: the timer setting (at least 3 s); later clips: the timer, or a quick 2 s.
+      for (let sec = prefs.countdown || (n === 0 ? 3 : 2); sec > 0; sec--) {
+        if (runRef.current !== run) break;
+        setCount(sec);
+        if (prefs.sound) playBeep(sec === 1);
+        await wait(1000);
+      }
+      if (runRef.current !== run) break;
+      setCount(0);
+      setLiveProgress(0);
+      setLivePhase('recording');
+      if (prefs.sound) playShutter();
+      let frames;
+      try {
+        frames = await captureFrames(camera.videoRef.current, {
+          aspect,
+          mirror: prefs.mirror,
+          onProgress: setLiveProgress,
+          isCancelled: () => runRef.current !== run,
+        });
+      } catch (err) {
+        toast.error('Capture failed', err.message);
+        break;
+      }
+      if (runRef.current !== run || frames.length < LIVE.frames) {
+        releaseFrames(frames);
+        break;
+      }
+      triggerFlash();
+      const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+      const clip = { id, frames, thumb: frames[0].toDataURL('image/jpeg', 0.7) };
+      // Replace ONLY this slot (its own frames); every other slot keeps its clip.
+      const grown = working.slice();
+      while (grown.length <= target) grown.push(null);
+      releaseFrames(grown[target]?.frames);
+      grown[target] = clip;
+      working = grown;
+      liveClipsRef.current = working;
+      setLiveClips(working);
+      if (n < targets.length - 1) {
+        setLivePhase(null);
+        await wait(600); // a beat to change pose before the next clip
+      }
     }
     setLivePhase(null);
-    triggerFlash();
-    const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-    const clip = { id, frames, thumb: frames[0].toDataURL('image/jpeg', 0.7) };
-    // Replace ONLY this slot (its own frames); every other slot keeps its clip.
-    const base = freshStrip ? [] : liveClipsRef.current;
-    const next = Array.from({ length: Math.max(base.length, slot + 1) }, (_, i) => base[i] || null);
-    releaseFrames(next[slot]?.frames);
-    next[slot] = clip;
-    setLiveClips(next);
-    const nextEmpty = fitPhotos(next, slotCount).findIndex((c) => !c);
+    setCount(0);
+    const nextEmpty = fitPhotos(working, slotCount).findIndex((c) => !c);
     setLiveSelected(nextEmpty >= 0 ? nextEmpty : null);
-    if (nextEmpty < 0) {
+    if (nextEmpty < 0 && runRef.current === run) {
       setResultOpen(true);
       const stripMeta = { template: template.id, layout: layout.id, filter: prefs.filter || 'auto', kind: 'live' };
       track('photostrip_created', stripMeta);
@@ -809,14 +829,12 @@ export default function Booth() {
               <Button
                 size="xl"
                 className={`take-btn take-btn-live${livePhase ? ' is-busy' : ''}`}
-                icon={livePhase === 'countdown' ? 'x' : 'sparkle'}
+                icon={livePhase ? 'x' : 'sparkle'}
                 onClick={takeLive}
-                disabled={livePhase === 'recording' || (!livePhase && camera.status !== 'ready')}
+                disabled={!livePhase && camera.status !== 'ready'}
               >
-                {livePhase === 'recording'
-                  ? 'Recording…'
-                  : livePhase === 'countdown'
-                    ? 'Stop'
+                {livePhase
+                  ? 'Stop'
                     : liveTarget < 0
                       ? 'Take New Live Strip'
                       : liveVisible[liveTarget]
