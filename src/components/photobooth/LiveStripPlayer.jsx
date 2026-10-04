@@ -6,7 +6,7 @@ import { LIVE, createLiveRenderer } from '../../lib/liveStrip';
  * Pauses when off-screen / tab hidden, and honours "reduce motion" (shows a still
  * until tapped).
  */
-export default function LiveStripPlayer({ template, frames, layout, aspect, filter, scale = 0.6, className = '', label }) {
+export default function LiveStripPlayer({ template, clips, layout, aspect, filter, scale = 0.6, className = '', label }) {
   const canvasRef = useRef(null);
   const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const [playing, setPlaying] = useState(!reduceMotion);
@@ -18,7 +18,7 @@ export default function LiveStripPlayer({ template, frames, layout, aspect, filt
     const canvas = canvasRef.current;
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
     io.observe(canvas);
-    createLiveRenderer(template, frames, { aspect, layout, filter, scale }).then((r) => {
+    createLiveRenderer(template, clips, { aspect, layout, filter, scale }).then((r) => {
       if (!alive) return;
       canvas.width = r.width;
       canvas.height = r.height;
@@ -43,11 +43,12 @@ export default function LiveStripPlayer({ template, frames, layout, aspect, filt
       cancelAnimationFrame(raf);
       io.disconnect();
     };
-  }, [template, frames, layout, aspect, filter, scale, playing]);
+  }, [template, clips, layout, aspect, filter, scale, playing]);
 
   return (
-    <span className={`live-player ${className}`}>
-      <canvas ref={canvasRef} className="strip-img" role="img" aria-label={label || `${template.name} Live Strip`} />
+    <span className="live-player">
+      {/* Size classes (e.g. strip-live) apply to the canvas itself so it scales like the static strip image. */}
+      <canvas ref={canvasRef} className={`strip-img ${className}`.trim()} role="img" aria-label={label || `${template.name} Live Strip`} />
       <span className="live-tag" aria-hidden="true">
         <i /> LIVE
       </span>

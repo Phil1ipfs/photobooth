@@ -10,15 +10,22 @@ test('boomerang plays forward then back without repeating the end frames', () =>
   expect(boomerangOrder(0)).toEqual([]);
 });
 
-test('slots are staggered across the loop and stay in range', () => {
-  const order = boomerangOrder(20); // 38 steps
-  const four = slotFrames(order, 4, 0);
-  expect(four).toHaveLength(4);
-  expect(new Set(four).size).toBe(4);
-  for (let step = 0; step < order.length * 2; step++) {
-    slotFrames(order, 6, step).forEach((k) => expect(k >= 0 && k < 20).toBe(true));
+test('each slot plays its own clip; empty slots stay empty', () => {
+  // canvas-like frames; .width 0 = freed after a retake
+  const clip = (tag, n = 5) => ({ frames: Array.from({ length: n }, (_, i) => ({ id: `${tag}${i}`, width: 10 })) });
+  const ids = (fs) => fs.map((f) => (f ? f.id : null));
+  const clips = [clip('a'), null, clip('c'), null];
+  expect(ids(slotFrames(clips, 0))).toEqual(['a0', null, 'c0', null]);
+  expect(ids(slotFrames(clips, 6))).toEqual(['a2', null, 'c2', null]); // 0 1 2 3 4 3 2 1 → step 6 = frame 2
+  const one = [clip('x'), null, null, null];
+  for (let step = 0; step < 16; step++) {
+    const f = ids(slotFrames(one, step));
+    expect(f.slice(1)).toEqual([null, null, null]); // never duplicated into other slots
+    expect(f[0].startsWith('x')).toBe(true);
   }
-  expect(slotFrames(order, 1, 3)).toEqual([order[3]]);
+  // a freed frame is skipped instead of drawn
+  const freed = { frames: [{ id: 'z0', width: 0 }] };
+  expect(slotFrames([freed], 0)).toEqual([null]);
 });
 
 test('file names and extensions', () => {

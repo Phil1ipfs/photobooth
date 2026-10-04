@@ -22,7 +22,6 @@ import { FREE_STRIP_LIMIT } from '../config/catalog';
 import { compositionSignature, createStripGate } from '../lib/stripGate';
 import {
   LIVE,
-  boomerangOrder,
   captureFrames,
   createLiveRenderer,
   encodeGif,
@@ -31,7 +30,6 @@ import {
   recordVideo,
   releaseFrames,
   renderPoster,
-  slotFrames,
   videoMimeType,
 } from '../lib/liveStrip';
 import { track } from '../lib/analytics';
@@ -97,15 +95,29 @@ export default function Booth() {
 
   // ----- Live Strip mode (boomerang). Photo mode state above is untouched by it. -----
   const mode = prefs.boothMode === 'live' ? 'live' : 'photo';
-  // { id, frames } — frames are canvases captured once per Live Strip (never per-frame state).
-  const [live, setLive] = useState(null);
+  // One Live clip per slot — the single source of truth, independent of the layout
+  // (like `captured` for photos): [{ id, frames, thumb } | null, …]. Frames are canvases
+  // captured once per clip (never per-frame state).
+  const [liveClips, setLiveClips] = useState([]);
+  const liveClipsRef = useRef(liveClips);
+  liveClipsRef.current = liveClips;
+  const [liveSelected, setLiveSelected] = useState(null); // slot chosen for the next (re)take
   const [livePhase, setLivePhase] = useState(null); // 'countdown' | 'recording' | null
   const [liveProgress, setLiveProgress] = useState(0);
   const liveExport = useRef({}); // cached video/poster for the current composition
+  // What the current layout shows; `live` is null until at least one clip exists.
+  const liveVisible = useMemo(() => fitPhotos(liveClips, slotCount), [liveClips, slotCount]);
+  const live = useMemo(
+    () => (liveVisible.some(Boolean) ? { clips: liveVisible, id: liveVisible.map((c) => (c ? c.id : '-')).join(',') } : null),
+    [liveVisible]
+  );
+  const liveTarget = liveSelected !== null && liveSelected < slotCount ? liveSelected : liveVisible.findIndex((c) => !c);
+  const liveFull = liveVisible.every(Boolean);
   useEffect(() => {
     liveExport.current = {};
-    return () => releaseFrames(live?.frames); // free canvas memory when replaced / on leave
   }, [live]);
+  // Free every clip's canvases when leaving the booth.
+  useEffect(() => () => liveClipsRef.current.forEach((c) => releaseFrames(c?.frames)), []);
 
   // ----- Free photostrip allowance (enforced by the database; see lib/stripGate) -----
   const { stripUsage, setStripUsage } = ent;
@@ -346,21 +358,33 @@ export default function Booth() {
       navigate('/login?next=/booth');
       return;
     }
+    // Which slot this clip fills: the one the user picked (retake), else the next empty one.
+    // A full strip with nothing picked starts a new strip.
+    let slot = liveTarget;
+    const freshStrip = slot < 0;
+    const emptyStrip = liveVisible.every((c) => !c);
+    if (freshStrip) slot = 0;
     // A Live Strip is a photostrip creation like any other (Free: counts toward the 2).
-    gate.beginStrip();
-    claimingRef.current = true;
-    let res;
-    try {
-      res = await gate.ensureCreation({ template: template.id, layout: layout.id });
-    } catch (err) {
-      toast.error('Couldn’t start your strip', err.message);
-      return;
-    } finally {
-      claimingRef.current = false;
+    if (freshStrip || emptyStrip || !gate.active) {
+      if (freshStrip || emptyStrip) gate.beginStrip();
+      claimingRef.current = true;
+      let res;
+      try {
+        res = await gate.ensureCreation({ template: template.id, layout: layout.id });
+      } catch (err) {
+        toast.error('Couldn’t start your strip', err.message);
+        return;
+      } finally {
+        claimingRef.current = false;
+      }
+      if (!res.allowed) {
+        showLimit();
+        return;
+      }
     }
-    if (!res.allowed) {
-      showLimit();
-      return;
+    if (freshStrip) {
+      liveClipsRef.current.forEach((c) => releaseFrames(c?.frames));
+      setLiveClips([]);
     }
 
     const run = ++runRef.current;
@@ -397,18 +421,36 @@ export default function Booth() {
     setLivePhase(null);
     triggerFlash();
     const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-    setLive({ id, frames });
-    setResultOpen(true);
-    const stripMeta = { template: template.id, layout: layout.id, filter: prefs.filter || 'auto', kind: 'live' };
-    track('photostrip_created', stripMeta);
-    track('template_used', stripMeta);
+    const clip = { id, frames, thumb: frames[0].toDataURL('image/jpeg', 0.7) };
+    // Replace ONLY this slot (its own frames); every other slot keeps its clip.
+    const base = freshStrip ? [] : liveClipsRef.current;
+    const next = Array.from({ length: Math.max(base.length, slot + 1) }, (_, i) => base[i] || null);
+    releaseFrames(next[slot]?.frames);
+    next[slot] = clip;
+    setLiveClips(next);
+    const nextEmpty = fitPhotos(next, slotCount).findIndex((c) => !c);
+    setLiveSelected(nextEmpty >= 0 ? nextEmpty : null);
+    if (nextEmpty < 0) {
+      setResultOpen(true);
+      const stripMeta = { template: template.id, layout: layout.id, filter: prefs.filter || 'auto', kind: 'live' };
+      track('photostrip_created', stripMeta);
+      track('template_used', stripMeta);
+    }
   };
 
   const clearLive = () => {
     stop();
     gate.beginStrip();
-    setLive(null);
+    liveClipsRef.current.forEach((c) => releaseFrames(c?.frames));
+    setLiveClips([]);
+    setLiveSelected(null);
     setResultOpen(false);
+  };
+
+  const removeLiveClip = (i) => {
+    releaseFrames(liveClipsRef.current[i]?.frames);
+    setLiveClips((list) => list.map((c, k) => (k === i ? null : c)));
+    setLiveSelected(i);
   };
 
   const setMode = (next) => {
@@ -417,12 +459,8 @@ export default function Booth() {
     setPref({ boothMode: next });
   };
 
-  // Slot thumbnails for Live mode (one still per slot, matching the stagger).
-  const liveThumbs = useMemo(() => {
-    if (!live) return Array(slotCount).fill(null);
-    const ks = slotFrames(boomerangOrder(live.frames.length), slotCount, 0);
-    return ks.map((k) => live.frames[k]?.toDataURL('image/jpeg', 0.7) || null);
-  }, [live, slotCount]);
+  // Slot thumbnails for Live mode: each slot's own clip (first frame), or empty.
+  const liveThumbs = useMemo(() => liveVisible.map((c) => (c ? c.thumb : null)), [liveVisible]);
 
   // Keyboard shortcut: Space takes a photo (when not typing / on a control).
   const startRef = useRef(startCapture);
@@ -487,7 +525,7 @@ export default function Booth() {
     }
     const signature = compositionSignature({
       // A Live Strip is identified by its capture; a photo strip by its photos.
-      photos: mode === 'live' && live ? [`live:${live.id}`] : photos,
+      photos: mode === 'live' && live ? live.clips.map((c) => (c ? `live:${c.id}` : null)) : photos,
       templateId: template.id,
       layoutId: layout.id,
       filter: prefs.filter,
@@ -551,10 +589,10 @@ export default function Booth() {
   const liveMedia = async () => {
     const key = [live.id, template.id, layout.id, prefs.filter, aspect].join('|');
     if (liveExport.current.key === key) return liveExport.current;
-    const renderer = await createLiveRenderer(template, live.frames, { ...liveOpts(), scale: LIVE.exportScale });
+    const renderer = await createLiveRenderer(template, live.clips, { ...liveOpts(), scale: LIVE.exportScale });
     const poster = await renderPoster(renderer);
     if (videoMimeType()) toast.info('Creating your Live Strip…', 'This takes about 10 seconds.');
-    const video = videoMimeType() ? await recordVideo(renderer) : await encodeGif(template, live.frames, liveOpts());
+    const video = videoMimeType() ? await recordVideo(renderer) : await encodeGif(template, live.clips, liveOpts());
     liveExport.current = { key, video, poster, width: renderer.width, height: renderer.height };
     return liveExport.current;
   };
@@ -622,7 +660,7 @@ export default function Booth() {
   });
 
   const downloadGif = withAction('gif', async () => {
-    const gif = await encodeGif(template, live.frames, liveOpts());
+    const gif = await encodeGif(template, live.clips, liveOpts());
     downloadBlob(gif, liveFileName(template.name, 'gif'));
     track('photostrip_downloaded', { ...meta(), source: 'booth', kind: 'live_gif' });
     toast.success('GIF downloaded!', 'Perfect for sharing in chats.');
@@ -716,7 +754,7 @@ export default function Booth() {
             aspect={aspect}
             mirror={prefs.mirror}
             countdown={count}
-            shotLabel={mode === 'live' ? 'Get ready — Live Strip!' : shotLabel}
+            shotLabel={mode === 'live' ? `Live clip ${Math.max(0, liveTarget) + 1} of ${slotCount} — get ready!` : shotLabel}
             flashing={flash === 'frame'}
             recording={livePhase === 'recording'}
             recordProgress={liveProgress}
@@ -750,9 +788,13 @@ export default function Booth() {
                   ? 'Recording…'
                   : livePhase === 'countdown'
                     ? 'Stop'
-                    : live
+                    : liveTarget < 0
                       ? 'Take New Live Strip'
-                      : 'Take Live Strip'}
+                      : liveVisible[liveTarget]
+                        ? `Retake Live ${liveTarget + 1}`
+                        : live
+                          ? `Take Live ${liveTarget + 1} of ${slotCount}`
+                          : 'Take Live Strip'}
               </Button>
               <Button size="xl" variant="outline" icon="trash" onClick={clearLive} disabled={!live || !!livePhase}>
                 Clear
@@ -806,7 +848,16 @@ export default function Booth() {
         </section>
 
         {mode === 'live' ? (
-          <PhotoSlots photos={liveThumbs} selected={-1} onSelect={() => {}} onRemove={() => {}} layout={layout} aspect={aspect} disabled live />
+          <PhotoSlots
+            photos={liveThumbs}
+            selected={liveFull && liveSelected === null ? -1 : liveTarget}
+            onSelect={setLiveSelected}
+            onRemove={removeLiveClip}
+            layout={layout}
+            aspect={aspect}
+            disabled={!!livePhase}
+            live
+          />
         ) : (
           <PhotoSlots
             photos={photos}
@@ -848,7 +899,7 @@ export default function Booth() {
         <div className="result">
           <div className="result-strip">
             {mode === 'live' && live ? (
-              <LiveStripPlayer template={template} frames={live.frames} layout={layout} aspect={aspect} filter={prefs.filter} />
+              <LiveStripPlayer template={template} clips={live.clips} layout={layout} aspect={aspect} filter={prefs.filter} />
             ) : (
               previewUrl && <img src={previewUrl} alt={`Your finished ${template.name} strip`} className="strip-img" />
             )}

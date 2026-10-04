@@ -21,7 +21,7 @@ export default function StripPreview({
   hd,
   hdLocked,
   onToggleHd,
-  live, // undefined = photo mode; false = Live mode, nothing captured yet; { frames } = Live Strip
+  live, // undefined = photo mode; false = Live mode, nothing captured yet; { clips } = Live Strip
 }) {
   const [url, setUrl] = useState(null);
   const [rendering, setRendering] = useState(true);
@@ -59,7 +59,7 @@ export default function StripPreview({
         <Sparkle size={18} className="deco-twinkle" style={{ right: '10%', top: '40%', animationDelay: '1.2s' }} />
         <DoodleHeart size={22} style={{ left: '14%', top: '62%' }} />
         {live ? (
-          <LiveStripPlayer template={template} frames={live.frames} layout={layout} aspect={aspect} filter={filter} className="strip-live" />
+          <LiveStripPlayer template={template} clips={live.clips} layout={layout} aspect={aspect} filter={filter} className="strip-live" />
         ) : url ? (
           <img
             key={`${template.id}-${layout.id}`}
@@ -76,10 +76,16 @@ export default function StripPreview({
         {live !== undefined ? (
           live ? (
             <>
-              <Icon name="check-circle" size={16} /> Live Strip ready · plays forward &amp; back
+              {live.clips.every(Boolean) ? (
+                <>
+                  <Icon name="check-circle" size={16} /> All {layout.photoCount} Live clips captured
+                </>
+              ) : (
+                `${live.clips.filter(Boolean).length} of ${layout.photoCount} Live clips captured`
+              )}
             </>
           ) : (
-            'Press “Take Live Strip” to record about 2 seconds'
+            `Each slot is a ~2 second Live clip · ${layout.photoCount} to go`
           )
         ) : count === layout.photoCount ? (
           <>

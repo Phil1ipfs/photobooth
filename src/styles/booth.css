@@ -1419,6 +1419,7 @@ kbd {
 }
 
 .live-player {
+  max-width: 100%;
   position: relative;
   display: inline-block;
   line-height: 0;
@@ -1477,5 +1478,19 @@ kbd {
   .rec-pill i,
   .live-tag i {
     animation: none;
+  }
+}
+
+/* Live Strip previews scale exactly like the static strip image (display only —
+   the canvas keeps its drawn resolution; downloads use separate full-size renders). */
+.result-strip canvas.strip-img {
+  max-height: 380px;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+}
+@media (max-width: 820px) {
+  .result-strip canvas.strip-img {
+    max-height: 300px;
   }
 }

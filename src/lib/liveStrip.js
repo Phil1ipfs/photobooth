@@ -2,7 +2,7 @@
 //
 // Pipeline (memory-friendly; nothing per-frame goes into React state):
 //   camera <video> ──(drawVideoFrame, ~10 fps for ~2 s)──▶ ~20 small canvases
-//   ──▶ boomerang order 0 1 2 … n-1 … 2 1 (seamless loop, no repeated end frames)
+//   ──▶ one clip per slot · boomerang order 0 1 2 … n-1 … 2 1 (seamless loop)
 //   ──▶ createStripRenderer(template) paints each animation frame on demand
 //   ──▶ preview (canvas + requestAnimationFrame) · WebM/MP4 (MediaRecorder on the
 //       canvas stream) · GIF (gifenc) · JPEG poster.
@@ -28,10 +28,14 @@ export function boomerangOrder(n) {
   return [...fwd, ...fwd.slice(1, -1).reverse()];
 }
 
-/** Which captured frame each slot shows at animation step `step` (slots are staggered). */
-export function slotFrames(order, slotCount, step) {
-  const len = order.length;
-  return Array.from({ length: slotCount }, (_, i) => order[(step + Math.round((len * i) / slotCount)) % len]);
+/** The frame each slot shows at animation step `step`: every slot plays its OWN clip. */
+export function slotFrames(clips, step) {
+  return clips.map((c) => {
+    if (!c?.frames?.length) return null;
+    const order = boomerangOrder(c.frames.length);
+    const f = c.frames[order[step % order.length]];
+    return f && f.width ? f : null; // freed after a retake/clear → treat as empty
+  });
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -64,18 +68,20 @@ export function releaseFrames(frames) {
   });
 }
 
-/** Builds a renderer for a template and the captured frames. */
-export async function createLiveRenderer(template, frames, { aspect, layout, filter, scale = 1 }) {
-  const strip = await createStripRenderer(template, { aspect, layout, filter, scale, placeholders: false });
-  const order = boomerangOrder(frames.length);
+/**
+ * Renderer for a template and the slot clips (`clips[i]` = { frames } captured for
+ * slot i, or null for an empty slot — shown as the template's placeholder).
+ */
+export async function createLiveRenderer(template, clips, { aspect, layout, filter, scale = 1 }) {
+  const strip = await createStripRenderer(template, { aspect, layout, filter, scale });
+  const steps = Math.max(1, ...clips.map((c) => (c?.frames?.length ? boomerangOrder(c.frames.length).length : 1)));
   return {
     width: strip.width,
     height: strip.height,
-    steps: order.length,
+    steps,
     /** Paint animation step `step` onto ctx. */
     draw(ctx, step) {
-      const idx = slotFrames(order, strip.slotCount, step % order.length);
-      strip.draw(ctx, idx.map((k) => frames[k]));
+      strip.draw(ctx, slotFrames(clips, step));
     },
   };
 }
@@ -140,9 +146,9 @@ export async function recordVideo(renderer, { loops = LIVE.videoLoops, frameMs =
 }
 
 /** Encode the animation as a looping GIF (gifenc, in small async chunks). */
-export async function encodeGif(template, frames, opts, { onProgress } = {}) {
+export async function encodeGif(template, clips, opts, { onProgress } = {}) {
   const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
-  const renderer = await createLiveRenderer(template, frames, { ...opts, scale: LIVE.gifScale });
+  const renderer = await createLiveRenderer(template, clips, { ...opts, scale: LIVE.gifScale });
   const canvas = document.createElement('canvas');
   canvas.width = renderer.width;
   canvas.height = renderer.height;
