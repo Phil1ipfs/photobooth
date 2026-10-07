@@ -36,7 +36,7 @@ export function Terms() {
       <p>Template designs are provided for personal use on strips you create with PhotoBooth.</p>
       <h2>Premium & payments</h2>
       <p>
-        Premium is a one-time purchase: each payment of ₱99 unlocks Premium features for 30 days on your account.
+        Premium is a one-time purchase: each payment of ₱99 unlocks Premium features for 1 year on your account.
         It does not renew automatically and you are never charged again unless you buy more time. Payments are
         processed by PayMongo (GCash, Maya or debit/credit card).
       </p>

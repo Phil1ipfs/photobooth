@@ -95,19 +95,20 @@ test('checkout: only POST', async () => {
 });
 
 test('checkout: requires a valid session token', async () => {
-  assert.equal((await call(checkout, { body: { planId: 'premium_monthly' } })).status, 401);
-  assert.equal((await call(checkout, { token: 'forged', body: { planId: 'premium_monthly' } })).status, 401);
+  assert.equal((await call(checkout, { body: { planId: 'premium_yearly' } })).status, 401);
+  assert.equal((await call(checkout, { token: 'forged', body: { planId: 'premium_yearly' } })).status, 401);
 });
 
 test('checkout: rejects unknown plans (incl. prototype keys)', async () => {
-  for (const planId of ['premium_lifetime', 'premium_yearly', 'toString', '__proto__', undefined]) {
+  // premium_monthly is retired (no longer for sale)
+  for (const planId of ['premium_lifetime', 'premium_monthly', 'toString', '__proto__', undefined]) {
     assert.equal((await call(checkout, { token: 'valid-token', body: { planId } })).status, 400, String(planId));
   }
 });
 
 test('checkout: creates a ₱99 PayMongo session tied to the user', async () => {
   state.created = [];
-  const r = await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly', amount: 1 } });
+  const r = await call(checkout, { token: 'valid-token', body: { planId: 'premium_yearly', amount: 1 } });
   assert.equal(r.status, 200);
   assert.equal(r.json.url, 'https://checkout.paymongo.test/cs_1');
   const s = state.created[0];
@@ -130,20 +131,22 @@ test('checkout: creates a ₱99 PayMongo session tied to the user', async () => 
 
 test('checkout: payment methods are configurable', async () => {
   process.env.PAYMONGO_PAYMENT_METHODS = ' gcash, qrph ';
-  await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly' } });
+  await call(checkout, { token: 'valid-token', body: { planId: 'premium_yearly' } });
   assert.deepEqual(state.created.at(-1).payment_method_types, ['gcash', 'qrph']);
   delete process.env.PAYMONGO_PAYMENT_METHODS;
 });
 
-test('checkout: Premium users can extend, but not beyond ~a year; admins never pay', async () => {
+test('checkout: Premium users can renew in the last 30 days only; admins never pay', async () => {
   state.tier = 'premium';
   state.activeSub = { current_period_end: new Date(Date.now() + 20 * 864e5).toISOString() };
-  assert.equal((await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly' } })).status, 200);
-  state.activeSub = { current_period_end: new Date(Date.now() + 340 * 864e5).toISOString() };
-  assert.equal((await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly' } })).status, 409);
+  assert.equal((await call(checkout, { token: 'valid-token', body: { planId: 'premium_yearly' } })).status, 200);
+  state.activeSub = { current_period_end: new Date(Date.now() + 200 * 864e5).toISOString() };
+  const early = await call(checkout, { token: 'valid-token', body: { planId: 'premium_yearly' } });
+  assert.equal(early.status, 409);
+  assert.match(early.json.error, /last 30 days/);
   state.activeSub = null;
   state.tier = 'admin';
-  assert.equal((await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly' } })).status, 409);
+  assert.equal((await call(checkout, { token: 'valid-token', body: { planId: 'premium_yearly' } })).status, 409);
   state.tier = 'free';
 });
 
@@ -167,7 +170,7 @@ test('confirm: grants Premium for a paid session, idempotently', async () => {
   assert.equal(r.status, 200);
   assert.equal(r.json.status, 'granted');
   assert.equal(state.grants[0].userId, USER.id);
-  assert.equal(state.grants[0].days, 30);
+  assert.equal(state.grants[0].days, 365);
   assert.equal((await call(confirm, { token: 'valid-token', body: { reference: ref } })).json.status, 'already_granted');
   assert.equal(state.grants.length, 1);
 });

@@ -126,7 +126,7 @@ function ProfileSection() {
   );
 }
 
-const EXTEND_PLAN = 'premium_monthly';
+const EXTEND_PLAN = 'premium_yearly';
 
 function BillingSection() {
   const { entitlements, isPremium, isAdmin, loading, stripUsage } = useEntitlements();
@@ -213,7 +213,7 @@ function BillingSection() {
               return startCheckout(EXTEND_PLAN);
             })}
           >
-            Extend {extendPlan ? `${extendPlan.days} days · ${formatPrice(extendPlan.price)}` : 'Premium'}
+            Extend {extendPlan ? `${extendPlan.period} · ${formatPrice(extendPlan.price)}` : 'Premium'}
           </Button>
         )}
       </div>

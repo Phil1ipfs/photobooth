@@ -30,7 +30,7 @@ const COMPARE = [
 ];
 
 const FAQ = [
-  ['Does it renew automatically?', 'No. Each payment gives you 30 days of Premium — there’s no subscription to cancel and you’re never charged again unless you choose to. Extend anytime from Settings → Billing; extra days are added on top of the time you have left.'],
+  ['Does it renew automatically?', 'No. Each payment gives you 1 year of Premium — there’s no subscription to cancel and you’re never charged again unless you choose to. Renew from Settings → Billing during the last 30 days of your year; the new year is added on top of the time you have left.'],
   ['Is the free plan really free?', `Yes — no card needed. Your free account includes ${FREE_STRIP_LIMIT} photostrips with the full photobooth, ${freeTemplates} templates and classic layouts — download, save and share them as often as you like.`],
   ['How can I pay?', 'Pay with GCash, Maya or a debit/credit card on PayMongo’s secure checkout page. PhotoBooth never sees or stores your payment details.'],
   ['What happens to Premium strips if I downgrade?', 'Everything you’ve already saved stays in My Photos. You just can’t create new strips with Premium templates or layouts until you upgrade again.'],
@@ -137,7 +137,7 @@ export default function Pricing() {
             {isPremium ? (
               <>
                 <Button block variant="soft" icon="sparkle" onClick={upgrade} loading={busy}>
-                  Extend {plan.interval}
+                  Extend {plan.period}
                 </Button>
                 <p className="plan-note">{describePlan(entitlements).detail}</p>
               </>

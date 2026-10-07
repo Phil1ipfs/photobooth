@@ -46,13 +46,25 @@ export const TIERS = {
 /** Purchasable plans. Only `enabled` ones are offered. */
 export const PLANS = [
   {
+    id: 'premium_yearly',
+    tier: 'premium',
+    name: 'Premium · 1 year',
+    price: 99,
+    interval: 'year', // "₱99 / year"
+    period: '1 year', // "Extend 1 year"
+    days: 365,
+    enabled: true,
+  },
+  {
+    // Retired 30-day pass — kept so existing passes still display correctly.
     id: 'premium_monthly',
     tier: 'premium',
     name: 'Premium · 30 days',
     price: 99,
     interval: '30 days',
+    period: '30 days',
     days: 30,
-    enabled: true,
+    enabled: false,
   },
 ];
 

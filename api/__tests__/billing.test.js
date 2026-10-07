@@ -14,7 +14,7 @@ function memoryRepo() {
   const s = { checkouts: new Map(), payments: new Set(), ends: new Map(), grants: 0 };
   return {
     s,
-    addCheckout(sessionId, userId = USER, plan = 'premium_monthly') {
+    addCheckout(sessionId, userId = USER, plan = 'premium_yearly') {
       s.checkouts.set(sessionId, { user_id: userId, session_id: sessionId, reference: `PB-${sessionId}`, plan, status: 'open' });
     },
     async getCheckoutBySession(id) {
@@ -37,7 +37,7 @@ const session = ({ id = 'cs_1', paid = true, amount = 9900, currency = 'PHP', li
   type: 'checkout_session',
   attributes: {
     livemode,
-    metadata: { user_id: userId, plan: 'premium_monthly' },
+    metadata: { user_id: userId, plan: 'premium_yearly' },
     payments: paid ? [{ id: payId, type: 'payment', attributes: { status: 'paid', amount, currency } }] : [],
   },
 });
@@ -91,7 +91,7 @@ test('signature: also accepts a bare hex HMAC of the body', () => {
 
 // --- Fulfilment ---------------------------------------------------------------
 
-test('fulfil: paid session grants 30 days once, even if confirmed twice', async () => {
+test('fulfil: paid session grants 1 year once, even if confirmed twice', async () => {
   const repo = memoryRepo();
   repo.addCheckout('cs_1');
   const deps = { repo, paymongo: fakePaymongo({ cs_1: session() }) };
@@ -99,7 +99,7 @@ test('fulfil: paid session grants 30 days once, even if confirmed twice', async 
   assert.equal(first.status, 'granted');
   assert.equal(first.userId, USER);
   const end = new Date(first.currentPeriodEnd).getTime();
-  assert.ok(Math.abs(end - (Date.now() + 30 * DAY)) < 5000);
+  assert.ok(Math.abs(end - (Date.now() + 365 * DAY)) < 5000);
   const second = await fulfilCheckoutSession(deps, 'cs_1', { expectedUserId: USER });
   assert.equal(second.status, 'already_granted');
   assert.equal(repo.s.grants, 1);
@@ -113,7 +113,7 @@ test('fulfil: a second purchase extends from the current end date', async () => 
   const deps = { repo, paymongo: fakePaymongo({ cs_1: session(), cs_2: session({ id: 'cs_2', payId: 'pay_2' }) }) };
   await fulfilCheckoutSession(deps, 'cs_1');
   const r = await fulfilCheckoutSession(deps, 'cs_2');
-  assert.ok(Math.abs(new Date(r.currentPeriodEnd).getTime() - (Date.now() + 60 * DAY)) < 5000);
+  assert.ok(Math.abs(new Date(r.currentPeriodEnd).getTime() - (Date.now() + 730 * DAY)) < 5000);
 });
 
 test('fulfil: unpaid and unknown sessions grant nothing', async () => {
@@ -179,4 +179,12 @@ test('webhook event: transient errors throw (so PayMongo retries); mismatches do
   bad.addCheckout('cs_1');
   const r = await handlePaymongoEvent(event('checkout_session.payment.paid'), { repo: bad, paymongo: fakePaymongo({ cs_1: session({ amount: 1 }) }) });
   assert.equal(r.status, 'rejected');
+});
+
+test('fulfil: a checkout started on the retired 30-day plan still grants 30 days', async () => {
+  const repo = memoryRepo();
+  repo.addCheckout('cs_1', USER, 'premium_monthly');
+  const r = await fulfilCheckoutSession({ repo, paymongo: fakePaymongo({ cs_1: session() }) }, 'cs_1');
+  assert.equal(r.status, 'granted');
+  assert.ok(Math.abs(new Date(r.currentPeriodEnd).getTime() - (Date.now() + 30 * DAY)) < 5000);
 });

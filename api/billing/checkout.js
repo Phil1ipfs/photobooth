@@ -6,10 +6,10 @@ const crypto = require('node:crypto');
 const { env, getPaymongo, siteUrl } = require('../_lib/clients');
 const { HttpError, handler, readJson, requireUser, send } = require('../_lib/http');
 const { supabaseRepo } = require('../_lib/repo');
-const { getPlan } = require('../_lib/plans');
+const { getPurchasablePlan } = require('../_lib/plans');
 
 const DEFAULT_METHODS = 'card,gcash,paymaya';
-const MAX_PREPAID_DAYS = 330; // don't sell more than ~a year ahead
+const RENEW_WINDOW_DAYS = 30; // Premium can be renewed in the last 30 days of the current pass
 
 const paymentMethods = () =>
   (env('PAYMONGO_PAYMENT_METHODS') || DEFAULT_METHODS)
@@ -20,15 +20,16 @@ const paymentMethods = () =>
 module.exports = handler(async (req, res) => {
   const user = await requireUser(req);
   const { planId } = await readJson(req);
-  const plan = getPlan(planId);
+  const plan = getPurchasablePlan(planId);
   if (!plan) throw new HttpError(400, 'That plan isn’t available.');
 
   const repo = supabaseRepo();
   const tier = await repo.currentTier(user.id);
   if (tier === 'admin') throw new HttpError(409, 'Admins already have every Premium feature.');
   const active = await repo.getActiveSubscription(user.id);
-  if (active?.current_period_end && new Date(active.current_period_end) - Date.now() > MAX_PREPAID_DAYS * 864e5) {
-    throw new HttpError(409, 'You’ve already prepaid Premium for the coming months.');
+  if (active?.current_period_end && new Date(active.current_period_end) - Date.now() > RENEW_WINDOW_DAYS * 864e5) {
+    const until = new Date(active.current_period_end).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    throw new HttpError(409, `Your Premium runs until ${until}. You can renew in its last ${RENEW_WINDOW_DAYS} days.`);
   }
 
   const reference = `PB-${crypto.randomBytes(9).toString('base64url')}`;
