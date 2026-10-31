@@ -1348,7 +1348,7 @@ kbd {
 .mode-switch {
   display: flex;
   width: fit-content;
-  margin: 14px auto 0;
+  margin: 14px auto 22px;
 }
 .mode-switch button {
   display: inline-flex;
@@ -1591,13 +1591,46 @@ kbd {
 .music-search:focus-within {
   border-color: var(--accent);
 }
+.music-chips-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}
 .music-chips {
   display: flex;
+  flex: 1;
   gap: 6px;
-  margin: 10px -18px 0;
-  padding: 0 18px 4px;
+  min-width: 0;
+  padding: 2px 0;
   overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.music-chips::-webkit-scrollbar {
+  display: none;
+}
+.music-chips button {
+  scroll-snap-align: start;
+}
+.music-chips-arrow {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-2);
+  box-shadow: var(--shadow-sm);
+}
+.music-chips-arrow:disabled {
+  visibility: hidden;
 }
 .music-chips button {
   flex: none;

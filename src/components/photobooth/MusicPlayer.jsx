@@ -22,7 +22,11 @@ function Cover({ track, spinning, size = 48 }) {
   }
   const [a, b] = track.cover || ['#e7a3b3', '#7a1030'];
   return (
-    <span className={`music-cover${spinning ? ' spinning' : ''}`} style={{ background: `linear-gradient(135deg, ${a}, ${b})` }} aria-hidden="true">
+    <span
+      className={`music-cover${spinning ? ' spinning' : ''}`}
+      style={{ background: `linear-gradient(135deg, ${a}, ${b})` }}
+      aria-hidden="true"
+    >
       <Icon name="music" size={18} />
     </span>
   );
@@ -37,21 +41,45 @@ function Browse({ onPlayed }) {
   const [status, setStatus] = useState('idle'); // idle | loading | error | done
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const chipsRef = useRef(null);
+  const [edges, setEdges] = useState({ left: false, right: true });
+  const updateEdges = () => {
+    const el = chipsRef.current;
+    if (el) setEdges({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+  };
+  const scrollChips = (dir) => chipsRef.current?.scrollBy({ left: dir * chipsRef.current.clientWidth * 0.7 });
+
+  // A mouse wheel scrolls the mood row sideways (trackpads and touch already do).
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el) return undefined;
+    updateEdges();
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   useEffect(() => {
     const ctrl = new AbortController();
-    const timer = setTimeout(async () => {
-      setStatus('loading');
-      try {
-        const list = await searchTracks({ query, category: query.trim() ? null : category, signal: ctrl.signal });
-        setResults(list);
-        setStatus('done');
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        setError(err.message);
-        setStatus('error');
-      }
-    }, query ? 400 : 0); // debounce typing
+    const timer = setTimeout(
+      async () => {
+        setStatus('loading');
+        try {
+          const list = await searchTracks({ query, category: query.trim() ? null : category, signal: ctrl.signal });
+          setResults(list);
+          setStatus('done');
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          setError(err.message);
+          setStatus('error');
+        }
+      },
+      query ? 400 : 0,
+    ); // debounce typing
     return () => {
       clearTimeout(timer);
       ctrl.abort();
@@ -67,25 +95,55 @@ function Browse({ onPlayed }) {
     <div className="music-browse">
       <label className="music-search">
         <Icon name="search" size={15} />
-        <input type="search" placeholder="Search songs or artists" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search music" />
+        <input
+          type="search"
+          placeholder="Search songs or artists"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search music"
+        />
       </label>
-      <div className="music-chips" role="group" aria-label="Moods and genres">
-        {MUSIC_CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            aria-pressed={!query.trim() && category === c.id}
-            onClick={() => {
-              setQuery('');
-              setCategory(c.id);
-            }}
-          >
-            <span aria-hidden="true">{c.emoji}</span> {c.label}
-          </button>
-        ))}
+      <div className="music-chips-wrap">
+        <button
+          type="button"
+          className="music-chips-arrow"
+          aria-label="Scroll moods left"
+          disabled={!edges.left}
+          onClick={() => scrollChips(-1)}
+        >
+          <Icon name="chevron-left" size={14} />
+        </button>
+        <div className="music-chips" role="group" aria-label="Moods and genres" ref={chipsRef} onScroll={updateEdges}>
+          {MUSIC_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={!query.trim() && category === c.id}
+              onClick={() => {
+                setQuery('');
+                setCategory(c.id);
+              }}
+            >
+              <span aria-hidden="true">{c.emoji}</span> {c.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="music-chips-arrow"
+          aria-label="Scroll moods right"
+          disabled={!edges.right}
+          onClick={() => scrollChips(1)}
+        >
+          <Icon name="chevron-right" size={14} />
+        </button>
       </div>
       <div className="music-results" aria-live="polite" aria-busy={status === 'loading'}>
-        {status === 'loading' && <p className="music-note"><span className="btn-spinner" /> Finding songs…</p>}
+        {status === 'loading' && (
+          <p className="music-note">
+            <span className="btn-spinner" /> Finding songs…
+          </p>
+        )}
         {status === 'error' && (
           <p className="music-note">
             {error}{' '}
@@ -113,7 +171,11 @@ function Browse({ onPlayed }) {
         )}
       </div>
       <p className="music-credit">
-        Music streamed from <a href="https://audius.co" target="_blank" rel="noreferrer">Audius</a> · songs belong to their artists
+        Music streamed from{' '}
+        <a href="https://audius.co" target="_blank" rel="noreferrer">
+          Audius
+        </a>{' '}
+        · songs belong to their artists
       </p>
     </div>
   );
@@ -155,7 +217,11 @@ export default function MusicPlayer({ compact = false, shared = false }) {
               Browse music
             </button>
           </div>
-          {shared && <p className="music-shared"><Icon name="users" size={13} /> Synced with your partner</p>}
+          {shared && (
+            <p className="music-shared">
+              <Icon name="users" size={13} /> Synced with your partner
+            </p>
+          )}
 
           {tab === 'browse' ? (
             <Browse onPlayed={() => setTab('now')} />
@@ -177,10 +243,20 @@ export default function MusicPlayer({ compact = false, shared = false }) {
                   </small>
                 </div>
                 <div className="music-skip">
-                  <button className="icon-btn icon-btn-sm icon-btn-plain" onClick={m.prev} aria-label="Previous song" disabled={m.tracks.length < 2}>
+                  <button
+                    className="icon-btn icon-btn-sm icon-btn-plain"
+                    onClick={m.prev}
+                    aria-label="Previous song"
+                    disabled={m.tracks.length < 2}
+                  >
                     <Icon name="skip-back" size={14} />
                   </button>
-                  <button className="icon-btn icon-btn-sm icon-btn-plain" onClick={m.next} aria-label="Next song" disabled={m.tracks.length < 2}>
+                  <button
+                    className="icon-btn icon-btn-sm icon-btn-plain"
+                    onClick={m.next}
+                    aria-label="Next song"
+                    disabled={m.tracks.length < 2}
+                  >
                     <Icon name="skip-forward" size={14} />
                   </button>
                 </div>
@@ -192,7 +268,11 @@ export default function MusicPlayer({ compact = false, shared = false }) {
               )}
               <div className="music-controls">
                 <button className="music-play" onClick={m.toggle} aria-label={m.playing ? 'Pause music' : 'Play music'}>
-                  {m.loading && m.playing ? <span className="btn-spinner" /> : <Icon name={m.playing ? 'pause' : 'play'} size={16} />}
+                  {m.loading && m.playing ? (
+                    <span className="btn-spinner" />
+                  ) : (
+                    <Icon name={m.playing ? 'pause' : 'play'} size={16} />
+                  )}
                 </button>
                 <div className="music-vol" ref={volRef}>
                   <button
@@ -240,10 +320,23 @@ export default function MusicPlayer({ compact = false, shared = false }) {
                 </span>
               </div>
               <div className="music-modes">
-                <button type="button" className="icon-btn icon-btn-sm icon-btn-plain" aria-pressed={m.shuffle} aria-label="Shuffle" onClick={() => m.setShuffle(!m.shuffle)}>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-sm icon-btn-plain"
+                  aria-pressed={m.shuffle}
+                  aria-label="Shuffle"
+                  onClick={() => m.setShuffle(!m.shuffle)}
+                >
                   <Icon name="shuffle" size={15} />
                 </button>
-                <button type="button" className="icon-btn icon-btn-sm icon-btn-plain" aria-pressed={m.repeat !== 'off'} aria-label={repeatLabel} title={repeatLabel} onClick={m.cycleRepeat}>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-sm icon-btn-plain"
+                  aria-pressed={m.repeat !== 'off'}
+                  aria-label={repeatLabel}
+                  title={repeatLabel}
+                  onClick={m.cycleRepeat}
+                >
                   <Icon name="repeat" size={15} />
                   {m.repeat === 'one' && <span className="music-one">1</span>}
                 </button>
