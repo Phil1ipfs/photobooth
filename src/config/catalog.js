@@ -45,6 +45,17 @@ export const PREMIUM_TEMPLATE_IDS = [
   'valentine-red',
   'birthday-pastel',
   'friends-blue',
+  // Halloween collection
+  'happy-halloween',
+  'spooky-love',
+  'boo-together',
+  'pumpkin-night',
+  'vampire-date',
+  'haunted-mansion',
+  'trick-or-treat',
+  'witching-hour',
+  'skeleton-couple',
+  'blood-moon',
 ];
 
 // Classic 1 × 4 and 1 × 2 strips are free; grids and editorial layouts are Premium.

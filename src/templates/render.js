@@ -12,6 +12,7 @@ import {
   scallopPath,
 } from './draw';
 import './drawExtra';
+import './drawHalloween';
 import { DEFAULT_LAYOUT_ID, getLayout } from './data';
 
 /** Width of a single-column strip; multi-column layouts grow from this. */
@@ -32,6 +33,7 @@ const STRIP_FONTS = [
   '400 40px "Shrikhand"',
   '400 40px "Lilita One"',
   '400 40px "Press Start 2P"',
+  '400 40px "Creepster"',
 ];
 
 let fontsPromise;
@@ -164,6 +166,7 @@ const FALLBACK = {
   'Great Vibes': 'cursive',
   Caveat: 'cursive',
   'Playfair Display': 'Georgia, serif',
+  Creepster: 'fantasy',
 };
 
 const fontString = (t) =>
@@ -234,7 +237,7 @@ function drawRun(ctx, text, x, y, spacing, mode) {
 }
 
 function drawText(ctx, t, pos, date) {
-  const text = t.text.replace('{date}', formatStripDate(date));
+  const text = t.text.replace('{date}', formatStripDate(date)).replace('{year}', date.getFullYear());
   const lines = text.split('\n');
   const size = t.size || 24;
   const lh = t.lineHeight || size * 1.1;
@@ -362,6 +365,8 @@ function drawSlot(ctx, t, r, img, i, opts) {
   const rot = f.rotate ? (f.rotate[i % f.rotate.length] * Math.PI) / 180 : 0;
 
   ctx.save();
+  // Scrapbook look: photos nudged left/right per slot (fraction of the slot width).
+  if (f.shiftX) ctx.translate(f.shiftX[i % f.shiftX.length] * r.w, 0);
   if (rot) {
     const cx = outer.x + outer.w / 2;
     const cy = outer.y + outer.h / 2;
@@ -469,7 +474,8 @@ function drawSlot(ctx, t, r, img, i, opts) {
     ctx.save();
     ctx.translate(outer.x + outer.w / 2, outer.y + 2);
     ctx.rotate(((i % 2 ? 4 : -5) * Math.PI) / 180);
-    DECOR.tape(ctx, { w: 110, h: 30, color: f.tape === true ? undefined : f.tape });
+    const tape = Array.isArray(f.tape) ? f.tape[i % f.tape.length] : f.tape; // one colour, or one per slot
+    DECOR.tape(ctx, { w: 110, h: 30, color: tape === true ? undefined : tape });
     ctx.restore();
   }
   ctx.restore();
