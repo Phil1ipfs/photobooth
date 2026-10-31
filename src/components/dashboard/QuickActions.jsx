@@ -5,6 +5,7 @@ import { TEMPLATES } from '../../templates/data';
 
 const ACTIONS = [
   { to: '/booth', icon: 'camera', title: 'Take a Photo', text: 'Start a new session' },
+  { to: '/ldr', icon: 'users', title: 'LDR Photobooth', text: 'Take photos together from anywhere' },
   { to: '/templates', icon: 'templates', title: 'Choose Template', text: `Browse ${TEMPLATES.length} aesthetic templates` },
   { to: '/photos', icon: 'image', title: 'View My Photos', text: 'Your saved memories' },
 ];

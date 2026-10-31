@@ -56,6 +56,8 @@ export const PREMIUM_TEMPLATE_IDS = [
   'witching-hour',
   'skeleton-couple',
   'blood-moon',
+  // LDR
+  'miles-apart',
 ];
 
 // Classic 1 × 4 and 1 × 2 strips are free; grids and editorial layouts are Premium.

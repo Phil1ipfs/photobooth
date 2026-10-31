@@ -236,8 +236,8 @@ function drawRun(ctx, text, x, y, spacing, mode) {
   }
 }
 
-function drawText(ctx, t, pos, date) {
-  const text = t.text.replace('{date}', formatStripDate(date)).replace('{year}', date.getFullYear());
+function drawText(ctx, t, pos, date, caption) {
+  const text = (t.caption && caption ? caption : t.text).replace('{date}', formatStripDate(date)).replace('{year}', date.getFullYear());
   const lines = text.split('\n');
   const size = t.size || 24;
   const lh = t.lineHeight || size * 1.1;
@@ -486,15 +486,15 @@ const DEFAULT_PLACEHOLDER = { bg: ['#e7dcd8', '#cdbcb7'], figure: 'rgba(255,255,
 /**
  * Render a template to a new canvas.
  * @param {object} template  Template definition from templates/data.js
- * @param {object} options   { photos: (string|null)[], aspect, layout, scale, date, placeholders, filter }
+ * @param {object} options   { photos: (string|null)[], aspect, layout, scale, date, placeholders, filter, caption }
  */
 export async function renderStrip(template, options = {}) {
-  const { photos = [], aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto' } = options;
+  const { photos = [], aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto', caption } = options;
   await ensureFonts();
   const images = await Promise.all(
     Array.from({ length: layout.photoCount }, (_, i) => (photos[i] ? loadImage(photos[i]).catch(() => null) : null))
   );
-  const renderer = await createStripRenderer(template, { aspect, layout, scale, date, placeholders, filter });
+  const renderer = await createStripRenderer(template, { aspect, layout, scale, date, placeholders, filter, caption });
   const canvas = document.createElement('canvas');
   canvas.width = renderer.width;
   canvas.height = renderer.height;
@@ -508,7 +508,7 @@ export async function renderStrip(template, options = {}) {
  * ImageBitmap). Used for animated Live Strips, where it runs once per frame.
  */
 export async function createStripRenderer(template, options = {}) {
-  const { aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto' } = options;
+  const { aspect = 4 / 3, layout = DEFAULT_LAYOUT, scale = 1, date = new Date(), placeholders = true, filter = 'auto', caption } = options;
   await ensureFonts();
   const geo = computeLayout(template, aspect, layout);
   const { W, H, slots } = geo;
@@ -525,7 +525,7 @@ export async function createStripRenderer(template, options = {}) {
       decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
       slots.forEach((r, i) => drawSlot(ctx, template, r, images[i] || null, i, { placeholders, filter }));
       decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
-      (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date));
+      (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date, caption));
       ctx.restore();
     },
   };

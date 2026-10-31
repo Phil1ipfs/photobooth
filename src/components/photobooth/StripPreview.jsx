@@ -21,6 +21,7 @@ export default function StripPreview({
   hd,
   hdLocked,
   onToggleHd,
+  caption,
   live, // undefined = photo mode; false = Live mode, nothing captured yet; { clips } = Live Strip
 }) {
   const [url, setUrl] = useState(null);
@@ -29,7 +30,7 @@ export default function StripPreview({
   useEffect(() => {
     let alive = true;
     setRendering(true);
-    renderStrip(template, { photos, aspect, layout, filter, scale: 0.6 })
+    renderStrip(template, { photos, aspect, layout, filter, caption, scale: 0.6 })
       .then((canvas) => {
         if (!alive) return;
         const u = canvas.toDataURL('image/jpeg', 0.9);
@@ -41,7 +42,7 @@ export default function StripPreview({
     return () => {
       alive = false;
     };
-  }, [template, layout, photos, aspect, filter, onRendered]);
+  }, [template, layout, photos, aspect, filter, caption, onRendered]);
 
   const count = photos.filter(Boolean).length;
 

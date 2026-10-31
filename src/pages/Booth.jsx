@@ -10,6 +10,7 @@ import PhotoSlots from '../components/photobooth/PhotoSlots';
 import TemplateSelector from '../components/photobooth/TemplateSelector';
 import StripPreview from '../components/photobooth/StripPreview';
 import MusicPlayer from '../components/photobooth/MusicPlayer';
+import MusicThemeHint from '../components/photobooth/MusicThemeHint';
 import LiveStripPlayer from '../components/photobooth/LiveStripPlayer';
 import useCamera from '../components/photobooth/useCamera';
 import { Link, useRouter } from '../lib/router';
@@ -951,6 +952,7 @@ export default function Booth() {
         )}
 
         <div className="booth-side">
+          <MusicThemeHint templateId={templateId} onUse={selectTemplate} />
           <TemplateSelector value={templateId} onChange={selectTemplate} aspect={aspect} layout={layout} favorites={favorites} />
           <StripPreview
             template={template}

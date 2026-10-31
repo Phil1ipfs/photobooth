@@ -13,6 +13,7 @@ import { useEntitlements } from '../../context/EntitlementsContext';
 export const APP_NAV = [
   { to: '/dashboard', label: 'Home', icon: 'home', auth: true },
   { to: '/templates', label: 'Templates', icon: 'templates' },
+  { to: '/ldr', label: 'LDR Photobooth', icon: 'users', auth: true },
   { to: '/photos', label: 'My Photos', icon: 'image', auth: true },
   { to: '/favorites', label: 'Favorites', icon: 'heart', auth: true },
   { to: '/settings', label: 'Settings', icon: 'settings', auth: true },
@@ -104,7 +105,7 @@ function Sidebar() {
 function BottomNav() {
   const { user } = useAuth();
   const { path } = useRouter();
-  const items = [APP_NAV[0], APP_NAV[1], null, APP_NAV[2], APP_NAV[4]];
+  const items = [APP_NAV[0], APP_NAV[1], null, APP_NAV[3], APP_NAV[5]]; // Home, Templates, (booth), My Photos, Settings
   return (
     <nav className="bottom-nav" aria-label="App">
       {items.map((item) =>

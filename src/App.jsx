@@ -13,6 +13,7 @@ import { LoginPage, ResetPasswordPage, SignupPage } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Templates from './pages/Templates';
 import Booth from './pages/Booth';
+import Ldr from './pages/Ldr';
 import MyPhotos from './pages/MyPhotos';
 import Favorites from './pages/Favorites';
 import Settings from './pages/Settings';
@@ -31,6 +32,7 @@ const ROUTES = {
   '/dashboard': [Dashboard, 'auth'],
   '/templates': [Templates, 'public'],
   '/booth': [Booth, 'public'],
+  '/ldr': [Ldr, 'auth'],
   '/photos': [MyPhotos, 'auth'],
   '/favorites': [Favorites, 'auth'],
   '/settings': [Settings, 'auth'],

@@ -7,6 +7,7 @@
 
 import { NEW_TEMPLATES } from './collection2';
 import { HALLOWEEN_TEMPLATES } from './halloween';
+import { LDR_TEMPLATES } from './ldr';
 
 export const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -602,7 +603,7 @@ const BASE_TEMPLATES = [
 ];
 
 // Original 20 templates + collection 2 (20 more). Order = gallery order.
-export const TEMPLATES = [...BASE_TEMPLATES, ...NEW_TEMPLATES, ...HALLOWEEN_TEMPLATES];
+export const TEMPLATES = [...BASE_TEMPLATES, ...NEW_TEMPLATES, ...HALLOWEEN_TEMPLATES, ...LDR_TEMPLATES];
 
 /** The layout a template is designed for (falls back to the classic 1 × 4 strip). */
 export const templateLayout = (t) => getLayout(t.layoutId || DEFAULT_LAYOUT_ID);
