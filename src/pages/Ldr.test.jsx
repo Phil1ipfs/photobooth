@@ -75,7 +75,7 @@ jest.mock('../context/ToastContext', () => {
   return { useToast: () => toast };
 });
 jest.mock('../context/EntitlementsContext', () => ({
-  useEntitlements: () => ({ canUseTemplate: () => true, canUseLayout: () => true, canUseFilter: mockCanUseFilter, canUseFeature: () => true, openUpgrade: mockOpenUpgrade, stripUsage: null, setStripUsage: () => {} }),
+  useEntitlements: () => ({ ready: true, canUseTemplate: () => true, canUseLayout: () => true, canUseFilter: mockCanUseFilter, canUseFeature: () => true, openUpgrade: mockOpenUpgrade, stripUsage: null, setStripUsage: () => {} }),
 }));
 jest.mock('../context/MusicContext', () => ({
   useMusic: () => ({ subscribe: () => () => {}, snapshot: () => ({}), applyRemote: () => {}, playing: false, track: { id: 'x' } }),

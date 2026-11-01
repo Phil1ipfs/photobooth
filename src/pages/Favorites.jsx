@@ -4,11 +4,16 @@ import TemplateGallery from '../components/templates/TemplateGallery';
 import Button from '../components/common/Button';
 import { EmptyState } from '../components/common/misc';
 import MyPhotos from './MyPhotos';
+import FeatureGate from '../components/billing/FeatureGate';
 import { usePrefs } from '../context/PrefsContext';
 import { useRouter } from '../lib/router';
 import { TEMPLATES } from '../templates/data';
 
 export default function Favorites() {
+  return <FeatureGate feature="favorites"><FavoritesPage /></FeatureGate>;
+}
+
+function FavoritesPage() {
   const { prefs, toggleFavoriteTemplate } = usePrefs();
   const { navigate } = useRouter();
   const favTemplates = TEMPLATES.filter((t) => prefs.favoriteTemplates.includes(t.id));

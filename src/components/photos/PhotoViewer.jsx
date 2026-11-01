@@ -45,19 +45,19 @@ export default function PhotoViewer({ strip, onClose, actions }) {
               {new Date(strip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {strip.mediaType === 'live_strip' ? 'Live Strip · ' : ''}{strip.width}×{strip.height}px
             </p>
             <div className="viewer-fav">
-              <FavoriteButton active={strip.favorite} onToggle={() => actions.favorite(strip)} size="md" label="favorites" />
+              <FavoriteButton active={strip.favorite} onToggle={() => actions.favorite(strip)} size="md" label="favorites" locked={actions.locked?.favorite} />
               <span>{strip.favorite ? 'In your favorites' : 'Add to favorites'}</span>
             </div>
             <div className="viewer-actions">
               <Button icon="download" block onClick={() => actions.download(strip)} data-autofocus>
                 Download
               </Button>
-              <Button variant="outline" icon="share" block onClick={() => actions.share(strip)}>
-                Share
+              <Button variant="outline" icon={actions.locked?.share ? 'lock' : 'share'} block onClick={() => actions.share(strip)}>
+                Share{actions.locked?.share ? ' · Premium' : ''}
               </Button>
               {strip.mediaType !== 'live_strip' && (
-                <Button variant="outline" icon="printer" block onClick={() => actions.print(strip)}>
-                  Print
+                <Button variant="outline" icon={actions.locked?.print ? 'lock' : 'printer'} block onClick={() => actions.print(strip)}>
+                  Print{actions.locked?.print ? ' · Premium' : ''}
                 </Button>
               )}
               {confirm ? (

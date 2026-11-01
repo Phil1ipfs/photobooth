@@ -20,7 +20,7 @@ function StaticPage({ title, updated, children }) {
 
 export function Terms() {
   return (
-    <StaticPage title="Terms of Use" updated="October 2026">
+    <StaticPage title="Terms of Use" updated="November 1, 2026">
       <p>PhotoBooth is a browser-based photo booth with a free plan and an optional paid Premium plan. By using it you agree to these simple terms.</p>
       <h2>Your photos</h2>
       <p>
@@ -36,7 +36,8 @@ export function Terms() {
       <p>Template designs are provided for personal use on strips you create with PhotoBooth.</p>
       <h2>Premium & payments</h2>
       <p>
-        Premium is a one-time purchase: each payment of ₱99 unlocks Premium features for 1 year on your account.
+        Premium costs ₱99 per month: each one-time payment unlocks Premium features for 30 days on your account.
+        Previously purchased yearly passes keep their original expiry date.
         It does not renew automatically and you are never charged again unless you buy more time. Payments are
         processed by PayMongo (GCash, Maya or debit/credit card).
       </p>
@@ -51,7 +52,7 @@ export function Terms() {
 
 export function Privacy() {
   return (
-    <StaticPage title="Privacy Policy" updated="October 2026">
+    <StaticPage title="Privacy Policy" updated="November 1, 2026">
       <p>Your memories are personal. Here’s exactly what happens to your data.</p>
       <h2>Camera</h2>
       <p>

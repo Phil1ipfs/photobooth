@@ -126,7 +126,7 @@ function ProfileSection() {
   );
 }
 
-const EXTEND_PLAN = 'premium_yearly';
+const EXTEND_PLAN = 'premium_monthly';
 
 function BillingSection() {
   const { entitlements, isPremium, isAdmin, loading, stripUsage } = useEntitlements();

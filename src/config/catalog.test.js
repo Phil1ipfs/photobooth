@@ -51,7 +51,8 @@ test('entitlements: free vs premium vs admin', () => {
   expect(canUseLayout(free, 'strip-1x4')).toBe(true);
   expect(canUseLayout(free, 'grid-2x2')).toBe(false);
   expect(canUseLayout(premium, 'grid-2x2')).toBe(true);
-  expect(canUseFilter(free, 'noir')).toBe(true);
+  expect(canUseFilter(free, 'none')).toBe(true);
+  expect(canUseFilter(free, 'noir')).toBe(false);
   expect(canUseFilter(free, 'sepia')).toBe(false);
   expect(canUseFeature(free, 'hd_export')).toBe(false);
   expect(canUseFeature(premium, 'hd_export')).toBe(true);

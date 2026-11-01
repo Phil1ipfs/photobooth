@@ -8,6 +8,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import looseTrack from '../assets/loose.mp3';
 import { shareableTrack, trackFromShared } from '../lib/music';
 import { hashString } from '../templates/draw';
+import { useEntitlements } from './EntitlementsContext';
 
 // Add more tracks here (import the file from src/assets) and the player will
 // show a track list automatically.
@@ -28,6 +29,10 @@ export function nextIndex(queue, index, { shuffle, step = 1 }) {
 }
 
 export function MusicProvider({ children }) {
+  const { ready, canUseFeature } = useEntitlements();
+  const allowed = ready && canUseFeature('music_library');
+  const allowedRef = useRef(allowed);
+  allowedRef.current = allowed;
   const audioRef = useRef(null);
   const [queue, setQueue] = useState(TRACKS);
   const [index, setIndex] = useState(0);
@@ -58,6 +63,7 @@ export function MusicProvider({ children }) {
   }, [volume, muted]);
 
   const play = useCallback(async () => {
+    if (!allowedRef.current) return;
     const a = audioRef.current;
     if (!a) return;
     try {
@@ -78,6 +84,7 @@ export function MusicProvider({ children }) {
       setTime(at);
       setError('');
       setTimeout(() => {
+        if (!allowedRef.current) return;
         const a = audioRef.current;
         if (a && at) a.currentTime = at;
         if (autoplay) play();
@@ -239,13 +246,21 @@ export function MusicProvider({ children }) {
     [queue, track, index, playing, loading, volume, muted, time, duration, error, needsTap, shuffle, repeat, category, toggle, play, seek, setVolume, select, next, prev, playQueue, setShuffle, cycleRepeat, subscribe, snapshot, applyRemote]
   );
 
+  useEffect(() => {
+    if (!allowed) {
+      if (audioRef.current && !audioRef.current.paused) audioRef.current.pause();
+      setPlaying(false);
+      setNeedsTap(false);
+    }
+  }, [allowed]);
+
   return (
     <MusicContext.Provider value={value}>
       <audio
         ref={audioRef}
-        src={track.src}
+        src={allowed ? track.src : undefined}
         loop={queue.length === 1 && repeat !== 'off'}
-        preload="metadata"
+        preload={allowed ? 'metadata' : 'none'}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onWaiting={() => setLoading(true)}

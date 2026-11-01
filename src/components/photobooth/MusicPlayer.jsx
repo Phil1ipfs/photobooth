@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Icon from '../common/Icon';
 import { useMusic } from '../../context/MusicContext';
 import { useToast } from '../../context/ToastContext';
+import { useEntitlements } from '../../context/EntitlementsContext';
 import { formatTime } from '../../lib/format';
 import { MUSIC_CATEGORIES, searchTracks } from '../../lib/music';
 
@@ -184,6 +185,8 @@ function Browse({ onPlayed }) {
 /** Floating music player. `compact` starts collapsed to the round music button. */
 export default function MusicPlayer({ compact = false, shared = false }) {
   const m = useMusic();
+  const { ready, canUseFeature, openUpgrade } = useEntitlements();
+  const allowed = ready && canUseFeature('music_library');
   const toast = useToast();
   const [open, setOpen] = useState(!compact && window.innerWidth >= 1560);
   const [tab, setTab] = useState('now');
@@ -191,8 +194,8 @@ export default function MusicPlayer({ compact = false, shared = false }) {
   const volRef = useRef(null);
 
   useEffect(() => {
-    if (m.error) toast.error('Music unavailable', m.error);
-  }, [m.error, toast]);
+    if (allowed && m.error) toast.error('Music unavailable', m.error);
+  }, [allowed, m.error, toast]);
 
   useEffect(() => {
     if (!volOpen) return undefined;
@@ -204,6 +207,14 @@ export default function MusicPlayer({ compact = false, shared = false }) {
   const pct = m.duration ? (m.time / m.duration) * 100 : 0;
   const vol = m.muted ? 0 : m.volume;
   const repeatLabel = { off: 'Repeat off', all: 'Repeat all', one: 'Repeat one' }[m.repeat];
+
+  if (!allowed) return (
+    <div className={`music${compact ? ' music-compact' : ''}`}>
+      <button className="music-fab" aria-label="Music library (Premium)" onClick={() => openUpgrade({ feature: 'music_library', title: 'Unlock the music library', description: 'Play music while taking photos with Premium.' })}>
+        <Icon name="lock" size={22} />
+      </button>
+    </div>
+  );
 
   return (
     <div className={`music${open ? ' open' : ''}${compact ? ' music-compact' : ''}`}>

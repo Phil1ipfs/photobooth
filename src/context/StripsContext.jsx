@@ -3,11 +3,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import * as store from '../lib/photoStore';
+import { useEntitlements } from './EntitlementsContext';
 
 const StripsContext = createContext(null);
 
 export function StripsProvider({ children }) {
   const { user } = useAuth();
+  const { canUseFeature } = useEntitlements();
   const userId = user?.id;
   const [strips, setStrips] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,7 @@ export function StripsProvider({ children }) {
   const save = useCallback(
     async (data) => {
       if (!userId) throw new Error('Please log in to save your photos.');
+      if (!canUseFeature('cloud_save')) throw new Error('premium_required: Saving to My Photos requires Premium.');
       const rec = await store.saveStrip(userId, data);
       const url = URL.createObjectURL(data.poster || data.blob);
       localUrls.current.push(url);
@@ -61,7 +64,7 @@ export function StripsProvider({ children }) {
       setStrips((s) => [withBlob, ...s]);
       return withBlob;
     },
-    [userId]
+    [userId, canUseFeature]
   );
 
   const toggleFavorite = useCallback(async (id) => {

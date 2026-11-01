@@ -8,7 +8,7 @@ import { TEMPLATES, getTemplate } from '../../templates/data';
 const STEPS = [
   { icon: 'templates', title: 'Choose a template', text: `Pick from ${TEMPLATES.length} aesthetic strips — cute, retro, minimal and more.` },
   { icon: 'camera', title: 'Strike a pose', text: 'A friendly countdown snaps four photos in a row. Retake any slot.' },
-  { icon: 'download', title: 'Download & share', text: 'Your strip renders instantly in high quality — download, print or share.' },
+  { icon: 'download', title: 'Download your strip', text: 'Download classic photos for free. Upgrade to Premium for Live Strips, sharing and printing.' },
 ];
 
 const DEMO_TEMPLATES = ['pink-pop', 'love-hearts', 'retro-70s'];

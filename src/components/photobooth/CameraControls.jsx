@@ -40,7 +40,7 @@ export default function CameraControls({ devices, cameraId, onCamera, prefs, set
       openUpgrade({
         feature: 'premium_filters',
         title: `Unlock the ${f.label} filter`,
-        description: 'Sepia, Warm glow, Cool tone and Faded film are Premium filters. Original and Black & white are free.',
+        description: 'Black & white, Sepia, Warm glow, Cool tone and Faded film are Premium filters. Original is free.',
       });
       return;
     }

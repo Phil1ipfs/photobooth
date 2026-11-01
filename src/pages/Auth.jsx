@@ -80,7 +80,7 @@ export function SignupPage() {
           <span className="auth-success-icon">
             <Icon name="check" size={30} strokeWidth={2.4} />
           </span>
-          <p className="muted">Your account has been created. Your strips are saved to your account and available on any device.</p>
+          <p className="muted">Your account is ready. Take classic photos and download your strips, or explore Premium for Live Strips, LDR and cloud saves.</p>
           <Button size="lg" block iconRight="arrow-right" onClick={() => navigate(safeNext(next), { replace: true })} data-autofocus>
             {next === '/booth' ? 'Back to the Photobooth' : 'Go to my Dashboard'}
           </Button>

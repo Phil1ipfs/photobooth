@@ -29,6 +29,8 @@ export function EntitlementsProvider({ children }) {
   // matches the signed-in user, callers must not act on "free" (it may be stale).
   const [loadedFor, setLoadedFor] = useState(undefined);
   const ready = loadedFor === (user?.id || null);
+  // An account switch must never expose the previous account's paid features.
+  const current = ready ? entitlements : ent.FREE_ENTITLEMENTS;
   const [upgrade, setUpgrade] = useState(null); // { feature, title, description } | null
   // Free photostrip allowance from the database: { used, limit, unlimited } | null (unknown / signed out).
   const [stripUsage, setStripUsage] = useState(null);
@@ -72,21 +74,21 @@ export function EntitlementsProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      entitlements,
+      entitlements: current,
       loading,
       ready,
       refresh,
       openUpgrade,
-      isPremium: ent.isPremium(entitlements),
-      isAdmin: ent.isAdmin(entitlements),
-      canUseTemplate: (t) => ent.canUseTemplate(entitlements, t),
-      canUseLayout: (l) => ent.canUseLayout(entitlements, l),
-      canUseFilter: (f) => ent.canUseFilter(entitlements, f),
-      canUseFeature: (f) => ent.canUseFeature(entitlements, f),
+      isPremium: ent.isPremium(current),
+      isAdmin: ent.isAdmin(current),
+      canUseTemplate: (t) => ent.canUseTemplate(current, t),
+      canUseLayout: (l) => ent.canUseLayout(current, l),
+      canUseFilter: (f) => ent.canUseFilter(current, f),
+      canUseFeature: (f) => ent.canUseFeature(current, f),
       stripUsage,
       setStripUsage,
     }),
-    [entitlements, loading, ready, refresh, openUpgrade, stripUsage]
+    [current, loading, ready, refresh, openUpgrade, stripUsage]
   );
 
   return (

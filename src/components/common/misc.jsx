@@ -35,22 +35,22 @@ export function Skeleton({ width = '100%', height = 16, radius, className = '', 
 }
 
 /** Heart toggle with a pop animation when favourited. */
-export function FavoriteButton({ active, onToggle, label = 'favorites', size = 'sm', className = '' }) {
+export function FavoriteButton({ active, onToggle, label = 'favorites', size = 'sm', className = '', locked = false }) {
   const [pop, setPop] = useState(false);
   return (
     <button
       type="button"
       className={`icon-btn fav-btn${size === 'sm' ? ' icon-btn-sm' : ''}${pop ? ' pop' : ''} ${className}`}
       aria-pressed={!!active}
-      aria-label={active ? `Remove from ${label}` : `Add to ${label}`}
+      aria-label={locked ? `Unlock ${label} with Premium` : active ? `Remove from ${label}` : `Add to ${label}`}
       onClick={(e) => {
         e.stopPropagation();
-        if (!active) setPop(true);
+        if (!locked && !active) setPop(true);
         onToggle?.();
       }}
       onAnimationEnd={() => setPop(false)}
     >
-      <Icon name="heart" size={size === 'sm' ? 16 : 18} />
+      <Icon name={locked ? 'lock' : 'heart'} size={size === 'sm' ? 16 : 18} />
     </button>
   );
 }

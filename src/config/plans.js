@@ -18,11 +18,11 @@ export const TIERS = {
     name: 'Free',
     tagline: `Try PhotoBooth with ${FREE_STRIP_LIMIT} free photostrips.`,
     features: [
-      `${FREE_STRIP_LIMIT} photostrips to create — download, save & share them`,
-      `${FREE_TEMPLATE_IDS.length} free templates to design them with`,
+      `${FREE_STRIP_LIMIT} classic photo strips to create and download`,
+      'Classic template with the Original filter',
       'Classic 1 × 4 and 1 × 2 strip layouts',
-      'Basic filters (Original, Black & white)',
-      'Live photobooth with countdown & flash',
+      'Standard-resolution PNG downloads',
+      'Still photos with countdown & flash',
       'Always ad-free',
     ],
   },
@@ -33,9 +33,13 @@ export const TIERS = {
     features: [
       'Everything in Free',
       'Unlimited photostrips',
+      'Live Strips: animated photos with MP4 and GIF downloads',
+      'LDR Photobooth: take photos together from two places',
+      'Save to My Photos, share, print and Favorites',
+      'Music library with search and mood playlists',
       `All ${FREE_TEMPLATE_IDS.length + PREMIUM_TEMPLATE_IDS.length} templates — and every new collection`,
       'Advanced layouts: 2 × 2, 2 × 3, 3 × 2, editorial & comic panels',
-      'Premium filters: Sepia, Warm glow, Cool tone, Faded film',
+      'Premium filters: Black & white, Sepia, Warm glow, Cool tone, Faded film',
       'HD downloads at 2× resolution',
       'Early access to future Premium features',
       'Always ad-free',
@@ -46,6 +50,17 @@ export const TIERS = {
 /** Purchasable plans. Only `enabled` ones are offered. */
 export const PLANS = [
   {
+    id: 'premium_monthly',
+    tier: 'premium',
+    name: 'Premium · 1 month',
+    price: 99,
+    interval: 'month',
+    period: '1 month',
+    days: 30,
+    enabled: true,
+  },
+  {
+    // Retired: preserve display and fulfilment for previously purchased yearly passes.
     id: 'premium_yearly',
     tier: 'premium',
     name: 'Premium · 1 year',
@@ -53,17 +68,6 @@ export const PLANS = [
     interval: 'year', // "₱99 / year"
     period: '1 year', // "Extend 1 year"
     days: 365,
-    enabled: true,
-  },
-  {
-    // Retired 30-day pass — kept so existing passes still display correctly.
-    id: 'premium_monthly',
-    tier: 'premium',
-    name: 'Premium · 30 days',
-    price: 99,
-    interval: '30 days',
-    period: '30 days',
-    days: 30,
     enabled: false,
   },
 ];

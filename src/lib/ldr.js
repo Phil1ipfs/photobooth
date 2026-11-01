@@ -10,6 +10,7 @@ export const topicFor = (roomId) => `ldr:${roomId}`;
 export const inviteLink = (code) => `${window.location.origin}/ldr?room=${encodeURIComponent(code)}`;
 
 const ERRORS = {
+  premium_required: 'LDR Photobooth requires Premium for both people in the room.',
   room_not_found: 'We couldn’t find that room. Check the code and try again.',
   room_expired: 'This room has expired. Ask your partner to create a new one.',
   room_full: 'This room already has two people in it.',

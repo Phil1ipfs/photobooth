@@ -1,12 +1,13 @@
 // Which templates / layouts / filters are Premium. This is the single source of
 // truth for the UI; the database copy (public.premium_catalog — latest seed in
-// supabase/migrations/005_strip_creation_limit.sql) enforces the same list
+// supabase/migrations/010_premium_feature_access.sql) enforces the same list
 // server-side, and a unit test (src/config/catalog.test.js) fails if they drift.
 
-// Free accounts get 2 templates; every other template is Premium.
-export const FREE_TEMPLATE_IDS = ['love-hearts', 'classic'];
+// Free accounts can take and download classic still photos.
+export const FREE_TEMPLATE_IDS = ['classic'];
 
 export const PREMIUM_TEMPLATE_IDS = [
+  'love-hearts',
   'polaroid',
   'vintage-film',
   'pink-pop',
@@ -65,9 +66,9 @@ export const PREMIUM_LAYOUT_IDS = ['grid-2x2', 'grid-2x3', 'grid-3x2', 'feature-
 
 // User-selectable photo filters (applied on top of / instead of the template's own).
 export const FILTERS = [
-  { id: 'auto', label: 'Template default', tier: 'free' },
+  { id: 'auto', label: 'Template default', tier: 'premium' },
   { id: 'none', label: 'Original', tier: 'free' },
-  { id: 'noir', label: 'Black & white', tier: 'free' },
+  { id: 'noir', label: 'Black & white', tier: 'premium' },
   { id: 'sepia', label: 'Sepia', tier: 'premium' },
   { id: 'warm', label: 'Warm glow', tier: 'premium' },
   { id: 'cool', label: 'Cool tone', tier: 'premium' },
@@ -84,6 +85,12 @@ export const FREE_STRIP_LIMIT = 2;
  * features they include. Add a feature here, gate it with canUseFeature().
  */
 export const FEATURES = {
+  live_strips: { label: 'Live Strips', tier: 'premium' },
+  ldr_rooms: { label: 'LDR Photobooth', tier: 'premium' },
+  music_library: { label: 'Music library', tier: 'premium' },
+  cloud_save: { label: 'Save to My Photos', tier: 'premium' },
+  share_print: { label: 'Share and print', tier: 'premium' },
+  favorites: { label: 'Favorites', tier: 'premium' },
   premium_templates: { label: 'All Premium templates', tier: 'premium' },
   advanced_layouts: { label: 'Advanced layouts (2 × 2, 2 × 3, 3 × 2, editorial, comic)', tier: 'premium' },
   premium_filters: { label: 'Premium photo filters', tier: 'premium' },

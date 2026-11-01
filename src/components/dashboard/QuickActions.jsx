@@ -2,15 +2,17 @@ import React from 'react';
 import Icon from '../common/Icon';
 import { Link } from '../../lib/router';
 import { TEMPLATES } from '../../templates/data';
+import { useEntitlements } from '../../context/EntitlementsContext';
 
 const ACTIONS = [
   { to: '/booth', icon: 'camera', title: 'Take a Photo', text: 'Start a new session' },
-  { to: '/ldr', icon: 'users', title: 'LDR Photobooth', text: 'Take photos together from anywhere' },
+  { to: '/ldr', icon: 'users', title: 'LDR Photobooth', text: 'Take photos together from anywhere', feature: 'ldr_rooms' },
   { to: '/templates', icon: 'templates', title: 'Choose Template', text: `Browse ${TEMPLATES.length} aesthetic templates` },
   { to: '/photos', icon: 'image', title: 'View My Photos', text: 'Your saved memories' },
 ];
 
 export default function QuickActions() {
+  const { canUseFeature, openUpgrade } = useEntitlements();
   return (
     <section aria-labelledby="qa-title">
       <div className="section-title">
@@ -18,7 +20,12 @@ export default function QuickActions() {
       </div>
       <div className="quick-actions">
         {ACTIONS.map((a) => (
-          <Link key={a.to} to={a.to} className="quick-action card card-hover">
+          <Link key={a.to} to={a.to} className="quick-action card card-hover" onClick={(e) => {
+            if (a.feature && !canUseFeature(a.feature)) {
+              e.preventDefault();
+              openUpgrade({ feature: a.feature, title: `Unlock ${a.title}`, description: `${a.title} is included with Premium.` });
+            }
+          }}>
             <span className="quick-action-icon">
               <Icon name={a.icon} size={20} />
             </span>
@@ -26,7 +33,7 @@ export default function QuickActions() {
               <strong>{a.title}</strong>
               <small>{a.text}</small>
             </span>
-            <Icon name="arrow-right" size={16} className="quick-action-arrow" />
+            <Icon name={a.feature && !canUseFeature(a.feature) ? 'lock' : 'arrow-right'} size={16} className="quick-action-arrow" />
           </Link>
         ))}
       </div>

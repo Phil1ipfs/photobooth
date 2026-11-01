@@ -8,8 +8,12 @@ import { templateTier } from '../../config/catalog';
 import { useEntitlements } from '../../context/EntitlementsContext';
 
 export default function TemplateSelector({ value, onChange, aspect, layout, favorites }) {
-  const { canUseTemplate } = useEntitlements();
+  const { canUseTemplate, canUseFeature, openUpgrade } = useEntitlements();
   const [favOnly, setFavOnly] = useState(false);
+  const favoritesAllowed = canUseFeature('favorites');
+  useEffect(() => {
+    if (!favoritesAllowed) setFavOnly(false);
+  }, [favoritesAllowed]);
   const listRef = useRef(null);
   const list = favOnly ? TEMPLATES.filter((t) => favorites.includes(t.id)) : TEMPLATES;
 
@@ -60,11 +64,14 @@ export default function TemplateSelector({ value, onChange, aspect, layout, favo
         <button
           className="icon-btn fav-btn"
           aria-pressed={favOnly}
-          onClick={() => setFavOnly((f) => !f)}
+          onClick={() => {
+            if (!canUseFeature('favorites')) return openUpgrade({ feature: 'favorites', title: 'Unlock Favorites', description: 'Keep your favorite templates together with Premium.' });
+            setFavOnly((f) => !f);
+          }}
           aria-label={favOnly ? 'Show all templates' : 'Show favorite templates only'}
           title={favOnly ? 'Show all' : 'Favorites only'}
         >
-          <Icon name="heart" size={18} />
+          <Icon name={canUseFeature('favorites') ? 'heart' : 'lock'} size={18} />
         </button>
       </div>
       {list.length === 0 ? (

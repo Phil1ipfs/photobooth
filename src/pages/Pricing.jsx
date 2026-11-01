@@ -16,24 +16,29 @@ import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
 import { track } from '../lib/analytics';
 
-const freeTemplates = TEMPLATES.length - PREMIUM_TEMPLATE_IDS.length;
 const COMPARE = [
-  { label: 'Live photobooth, countdown & flash', free: true, premium: true },
-  { label: 'Download, share & print strips', free: true, premium: true },
+  { label: 'Classic photos, countdown & flash', free: true, premium: true },
+  { label: 'Download photo strips', free: true, premium: true },
+  { label: 'Live Strips (MP4 & GIF)', free: false, premium: true },
+  { label: 'LDR Photobooth rooms', free: false, premium: true },
+  { label: 'Music library', free: false, premium: true },
+  { label: 'Save to My Photos & Favorites', free: false, premium: true },
+  { label: 'Share & print', free: false, premium: true },
   { label: 'Photostrips you can create', free: `${FREE_STRIP_LIMIT} in total`, premium: 'Unlimited' },
-  { label: 'Templates', free: `${freeTemplates}`, premium: `All ${TEMPLATES.length}` },
+  { label: 'Templates', free: 'Classic only', premium: `All ${TEMPLATES.length}` },
   { label: 'Layouts', free: '1 × 4, 1 × 2', premium: `All ${LAYOUTS.length}` },
-  { label: 'Photo filters', free: 'Original, B&W', premium: '+ Sepia, Warm, Cool, Faded' },
+  { label: 'Photo filters', free: 'Original', premium: 'Original, B&W, Sepia, Warm, Cool, Faded' },
   { label: 'HD downloads (2× resolution)', free: false, premium: true },
   { label: 'New template collections', free: false, premium: true },
   { label: 'Ads', free: 'Never', premium: 'Never' },
 ];
 
 const FAQ = [
-  ['Does it renew automatically?', 'No. Each payment gives you 1 year of Premium — there’s no subscription to cancel and you’re never charged again unless you choose to. Renew from Settings → Billing during the last 30 days of your year; the new year is added on top of the time you have left.'],
-  ['Is the free plan really free?', `Yes — no card needed. Your free account includes ${FREE_STRIP_LIMIT} photostrips with the full photobooth, ${freeTemplates} templates and classic layouts — download, save and share them as often as you like.`],
+  ['How long does Premium last?', 'Premium costs ₱99 per month. Each payment unlocks all Premium features for 30 days. Previously purchased yearly passes keep their original expiry date.'],
+  ['Does it renew automatically?', 'No. Each payment adds 30 days of Premium. Renew manually from Settings → Billing; your new 30 days are added to the time you have left. There are no automatic charges.'],
+  ['Is the free plan really free?', `Yes — no card needed. Your free account includes ${FREE_STRIP_LIMIT} classic still-photo strips in total, using the Classic template and Original filter. Download the same strip again at no extra cost. Live Strips, LDR, music, cloud saves, sharing and printing require Premium.`],
   ['How can I pay?', 'Pay with GCash, Maya or a debit/credit card on PayMongo’s secure checkout page. PhotoBooth never sees or stores your payment details.'],
-  ['What happens to Premium strips if I downgrade?', 'Everything you’ve already saved stays in My Photos. You just can’t create new strips with Premium templates or layouts until you upgrade again.'],
+  ['What happens to Premium strips if I downgrade?', 'Everything you already saved stays in My Photos for viewing, downloading and deleting. Creating new Live Strips, using LDR, saving, sharing, printing and other Premium features requires an active Premium pass.'],
 ];
 
 export default function Pricing() {

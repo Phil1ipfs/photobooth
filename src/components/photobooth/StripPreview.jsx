@@ -17,6 +17,7 @@ export default function StripPreview({
   actions,
   favorite,
   onFavorite,
+  favoriteLocked,
   busyAction,
   hd,
   hdLocked,
@@ -52,7 +53,7 @@ export default function StripPreview({
         <h2 id="strip-title">{live !== undefined ? 'Your Live Strip' : 'Your Photo Strip'}</h2>
         <span className="strip-panel-rule" aria-hidden="true" />
         <span className="strip-panel-tpl">{template.name}</span>
-        <FavoriteButton active={favorite} onToggle={onFavorite} label="favorites" />
+        <FavoriteButton active={favorite} onToggle={onFavorite} label="favorites" locked={favoriteLocked} />
       </div>
 
       <div className="strip-stage">
@@ -102,13 +103,14 @@ export default function StripPreview({
           <button
             key={a.id}
             type="button"
-            className="strip-action"
+            className={`strip-action${a.locked ? ' is-locked' : ''}`}
             onClick={a.onClick}
             disabled={a.disabled || !!busyAction}
-            aria-label={a.label}
+            aria-label={`${a.label}${a.locked ? ' (Premium)' : ''}`}
+            title={a.locked ? `Unlock ${a.label} with Premium` : undefined}
           >
             <span className="strip-action-icon">
-              {busyAction === a.id ? <span className="btn-spinner" /> : <Icon name={a.icon} size={18} />}
+              {busyAction === a.id ? <span className="btn-spinner" /> : <Icon name={a.locked ? 'lock' : a.icon} size={18} />}
             </span>
             <span>{a.short || a.label}</span>
           </button>

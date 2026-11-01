@@ -608,8 +608,8 @@ export const TEMPLATES = [...BASE_TEMPLATES, ...NEW_TEMPLATES, ...HALLOWEEN_TEMP
 /** The layout a template is designed for (falls back to the classic 1 × 4 strip). */
 export const templateLayout = (t) => getLayout(t.layoutId || DEFAULT_LAYOUT_ID);
 
-export const DEFAULT_TEMPLATE_ID = 'love-hearts';
+export const DEFAULT_TEMPLATE_ID = 'classic';
 
-export const getTemplate = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES[0];
+export const getTemplate = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID);
 
 export const categoryLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label || id;

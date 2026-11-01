@@ -13,6 +13,7 @@ import Icon from '../components/common/Icon';
 import Button from '../components/common/Button';
 import { SelectPill } from '../components/common/Input';
 import Modal from '../components/common/Modal';
+import FeatureGate from '../components/billing/FeatureGate';
 import { Avatar } from '../components/common/misc';
 import CameraPreview from '../components/photobooth/CameraPreview';
 import TemplateSelector from '../components/photobooth/TemplateSelector';
@@ -50,6 +51,10 @@ const cleanSettings = (s) =>
     : null;
 
 export default function Ldr() {
+  return <FeatureGate feature="ldr_rooms"><LdrPage /></FeatureGate>;
+}
+
+function LdrPage() {
   const { query, navigate } = useRouter();
   const toast = useToast();
   const code = (query.get('room') || '').toUpperCase();

@@ -14,13 +14,13 @@ const FEATURES = [
   { icon: 'templates', title: `${TEMPLATES.length}+ Templates`, text: 'Choose from a variety of cute and trendy layouts.' },
   { icon: 'download', title: 'Instant Download', text: 'Save your photos in high quality.' },
   { icon: 'wand', title: 'Easy to Use', text: 'Simple, clean, and fun to navigate.' },
-  { icon: 'share', title: 'Share the Memories', text: 'Print, post, or keep them for yourself.' },
+  { icon: 'share', title: 'Share the Memories', text: 'Unlock sharing and printing with Premium.' },
 ];
 
 const STEPS = [
   { n: '01', title: 'Pick your vibe', text: 'Browse cute, retro, minimal and seasonal strips, then choose your favorite.' },
   { n: '02', title: 'Strike a pose', text: 'A gentle countdown snaps four photos. Don’t love one? Retake just that slot.' },
-  { n: '03', title: 'Keep the memory', text: 'Download, print or share your strip — or save it to your personal gallery.' },
+  { n: '03', title: 'Keep the memory', text: 'Download your classic strip. Upgrade for Live Strips, LDR, sharing, printing and cloud saves.' },
 ];
 
 export default function Landing() {

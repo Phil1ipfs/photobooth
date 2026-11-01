@@ -11,7 +11,7 @@ import { useEntitlements } from '../../context/EntitlementsContext';
 
 /** Full-size template preview with its photo count, category and "Use Template". */
 export default function TemplatePreviewModal({ template, onClose, favorite, onToggleFavorite, onUse }) {
-  const { canUseTemplate, openUpgrade } = useEntitlements();
+  const { canUseTemplate, canUseFeature, openUpgrade } = useEntitlements();
   const layout = template ? templateLayout(template) : null;
   return (
     <Modal open={!!template} onClose={onClose} width={680} className="tpl-modal">
@@ -73,6 +73,7 @@ export default function TemplatePreviewModal({ template, onClose, favorite, onTo
                   onToggle={() => onToggleFavorite(template.id)}
                   size="md"
                   label={`favorites: ${template.name}`}
+                  locked={!canUseFeature('favorites')}
                 />
                 <span>{favorite ? 'In your favorites' : 'Add to favorites'}</span>
               </div>

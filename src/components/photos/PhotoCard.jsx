@@ -2,9 +2,11 @@ import React from 'react';
 import Icon from '../common/Icon';
 import { FavoriteButton } from '../common/misc';
 import { formatDate } from '../../lib/format';
+import { useEntitlements } from '../../context/EntitlementsContext';
 
 /** Saved photo strip card. `onOpen` opens the large preview. */
 export default function PhotoCard({ strip, onOpen, onFavorite, onDownload, onShare, onDelete, style }) {
+  const { canUseFeature } = useEntitlements();
   return (
     <article className="photo-card card card-hover" style={style}>
       <button type="button" className="photo-card-media" onClick={() => onOpen?.(strip)} aria-label={`Open ${strip.templateName} strip from ${formatDate(strip.createdAt)}`}>
@@ -21,13 +23,13 @@ export default function PhotoCard({ strip, onOpen, onFavorite, onDownload, onSha
           <small>{formatDate(strip.createdAt)}</small>
         </div>
         <div className="photo-card-actions">
-          <FavoriteButton active={strip.favorite} onToggle={() => onFavorite(strip)} label="favorites" />
+          <FavoriteButton active={strip.favorite} onToggle={() => onFavorite(strip)} label="favorites" locked={!canUseFeature('favorites')} />
           <button className="icon-btn icon-btn-sm" onClick={() => onDownload(strip)} aria-label="Download">
             <Icon name="download" size={16} />
           </button>
           {onShare && (
-            <button className="icon-btn icon-btn-sm" onClick={() => onShare(strip)} aria-label="Share">
-              <Icon name="share" size={16} />
+            <button className="icon-btn icon-btn-sm" onClick={() => onShare(strip)} aria-label={canUseFeature('share_print') ? 'Share' : 'Share (Premium)'}>
+              <Icon name={canUseFeature('share_print') ? 'share' : 'lock'} size={16} />
             </button>
           )}
           {onDelete && (

@@ -13,9 +13,9 @@ import { useEntitlements } from '../../context/EntitlementsContext';
 export const APP_NAV = [
   { to: '/dashboard', label: 'Home', icon: 'home', auth: true },
   { to: '/templates', label: 'Templates', icon: 'templates' },
-  { to: '/ldr', label: 'LDR Photobooth', icon: 'users', auth: true },
+  { to: '/ldr', label: 'LDR Photobooth', icon: 'users', auth: true, feature: 'ldr_rooms' },
   { to: '/photos', label: 'My Photos', icon: 'image', auth: true },
-  { to: '/favorites', label: 'Favorites', icon: 'heart', auth: true },
+  { to: '/favorites', label: 'Favorites', icon: 'heart', auth: true, feature: 'favorites' },
   { to: '/settings', label: 'Settings', icon: 'settings', auth: true },
 ];
 
@@ -23,7 +23,7 @@ const navTarget = (item, user) => (item.auth && !user ? `/login?next=${encodeURI
 
 function Sidebar() {
   const { user, logOut } = useAuth();
-  const { isPremium, isAdmin } = useEntitlements();
+  const { isPremium, isAdmin, canUseFeature, openUpgrade } = useEntitlements();
   const nav = isAdmin ? [...APP_NAV, { to: '/admin', label: 'Analytics', icon: 'chart', auth: true }] : APP_NAV;
   const { path, navigate } = useRouter();
   const toast = useToast();
@@ -38,9 +38,16 @@ function Sidebar() {
             to={navTarget(item, user)}
             className="side-link"
             aria-current={path === item.to ? 'page' : undefined}
+            onClick={(e) => {
+              if (item.feature && !canUseFeature(item.feature)) {
+                e.preventDefault();
+                openUpgrade({ feature: item.feature, title: `Unlock ${item.label}`, description: `${item.label} is a Premium feature.` });
+              }
+            }}
           >
             <Icon name={item.icon} size={19} />
             {item.label}
+            {item.feature && !canUseFeature(item.feature) && <Icon name="lock" size={13} className="side-feature-lock" />}
           </Link>
         ))}
       </nav>
@@ -88,7 +95,7 @@ function Sidebar() {
         ) : (
           <div className="side-guest">
             <strong>Keep your memories</strong>
-            <small>Create a free account to save strips and favorites.</small>
+            <small>Create a free account to take and download classic photo strips.</small>
             <Button to={`/signup?next=${encodeURIComponent(path)}`} size="sm" block>
               Sign Up
             </Button>

@@ -4,6 +4,8 @@ import { useToast } from '../../context/ToastContext';
 import { downloadBlob, printBlob, shareBlob, stripFileName } from '../../lib/share';
 import { track } from '../../lib/analytics';
 import { extensionFor, liveFileName } from '../../lib/liveStrip';
+import { useEntitlements } from '../../context/EntitlementsContext';
+import { FEATURES } from '../../config/catalog';
 
 /** Download name: PNG for photo strips, .webm/.mp4 for Live Strips. */
 const fileNameFor = (s, blob) =>
@@ -15,6 +17,12 @@ const fileNameFor = (s, blob) =>
 export default function useStripActions() {
   const { toggleFavorite, remove, getBlob } = useStrips();
   const toast = useToast();
+  const { canUseFeature, openUpgrade } = useEntitlements();
+  const allow = useCallback((feature) => {
+    if (canUseFeature(feature)) return true;
+    openUpgrade({ feature, title: `Unlock ${FEATURES[feature].label}`, description: 'Free accounts can download their photos. Upgrade to use this feature.' });
+    return false;
+  }, [canUseFeature, openUpgrade]);
 
   const withBlob = useCallback(
     async (s, fn) => {
@@ -38,23 +46,24 @@ export default function useStripActions() {
   );
 
   const share = useCallback(
-    (s) =>
+    (s) => allow('share_print') &&
       withBlob(s, async (blob) => {
         const res = await shareBlob(blob, fileNameFor(s, blob));
         if (res === 'downloaded') toast.info('Sharing isn’t supported here', 'We downloaded the strip so you can share it.');
       }),
-    [withBlob, toast]
+    [withBlob, toast, allow]
   );
 
   const favorite = useCallback(
     async (s) => {
+      if (!allow('favorites')) return;
       try {
         await toggleFavorite(s.id);
       } catch (err) {
         toast.error('Couldn’t update favorite', err.message);
       }
     },
-    [toggleFavorite, toast]
+    [toggleFavorite, toast, allow]
   );
 
   const del = useCallback(
@@ -69,7 +78,7 @@ export default function useStripActions() {
     [remove, toast]
   );
 
-  const print = useCallback((s) => withBlob(s, (blob) => printBlob(blob)), [withBlob]);
+  const print = useCallback((s) => allow('share_print') && withBlob(s, (blob) => printBlob(blob)), [withBlob, allow]);
 
-  return { download, share, favorite, del, print };
+  return { download, share, favorite, del, print, locked: { share: !canUseFeature('share_print'), print: !canUseFeature('share_print'), favorite: !canUseFeature('favorites') } };
 }

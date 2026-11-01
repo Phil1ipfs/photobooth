@@ -2,6 +2,16 @@
 // Premium it buys. This — not the browser — decides the amount charged. Keep the
 // ids and prices in sync with src/config/plans.js (display config).
 const PLANS = {
+  premium_monthly: {
+    tier: 'premium',
+    name: 'PhotoBooth Premium — 1 month',
+    description: 'All Premium features for 30 days. One-time payment, no auto-renewal.',
+    amount: 9900,
+    currency: 'PHP',
+    days: 30,
+    purchasable: true,
+  },
+  // Retired: yearly checkouts already started still grant what was purchased.
   premium_yearly: {
     tier: 'premium',
     name: 'PhotoBooth Premium — 1 year',
@@ -9,17 +19,6 @@ const PLANS = {
     amount: 9900, // centavos (₱99.00)
     currency: 'PHP',
     days: 365,
-    purchasable: true,
-  },
-  // Retired: no longer sold, but kept so checkouts started before the switch still
-  // grant exactly what was paid for (30 days).
-  premium_monthly: {
-    tier: 'premium',
-    name: 'PhotoBooth Premium — 30 days',
-    description: 'All Premium templates, layouts, filters and HD downloads for 30 days. No auto-renewal.',
-    amount: 9900,
-    currency: 'PHP',
-    days: 30,
     purchasable: false,
   },
 };

@@ -8,7 +8,7 @@ import { templateTier } from '../../config/catalog';
 import { useEntitlements } from '../../context/EntitlementsContext';
 
 export default function TemplateCard({ template, favorite, onToggleFavorite, onUse, onPreview, style }) {
-  const { canUseTemplate, openUpgrade } = useEntitlements();
+  const { canUseTemplate, canUseFeature, openUpgrade } = useEntitlements();
   const layout = templateLayout(template);
   const premium = templateTier(template) === 'premium';
   const locked = !canUseTemplate(template);
@@ -41,6 +41,7 @@ export default function TemplateCard({ template, favorite, onToggleFavorite, onU
           active={favorite}
           onToggle={() => onToggleFavorite(template.id)}
           label={`favorites: ${template.name}`}
+          locked={!canUseFeature('favorites')}
         />
         {premium ? (
           <PremiumBadge locked={locked} className="tpl-card-premium" />

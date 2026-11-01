@@ -6,11 +6,20 @@ import { EmptyState } from '../common/misc';
 import Button from '../common/Button';
 import { CATEGORIES, TEMPLATES } from '../../templates/data';
 import { track } from '../../lib/analytics';
+import { useEntitlements } from '../../context/EntitlementsContext';
 
 const PAGE_SIZE = 10;
 
 /** Filterable, paginated grid of templates. */
 export default function TemplateGallery({ query = '', category, onCategory, favorites, onToggleFavorite, onUse: onUseProp, only }) {
+  const { canUseFeature, openUpgrade } = useEntitlements();
+  const toggleFavorite = (id) => {
+    if (!canUseFeature('favorites')) {
+      setPreviewing(null);
+      return openUpgrade({ feature: 'favorites', title: 'Unlock Favorites', description: 'Save your favorite templates and photos with Premium.' });
+    }
+    onToggleFavorite(id);
+  };
   const onUse = (id) => {
     track('template_selected', { template: id, source: 'gallery' });
     onUseProp(id);
@@ -64,7 +73,7 @@ export default function TemplateGallery({ query = '', category, onCategory, favo
               key={t.id}
               template={t}
               favorite={favorites.includes(t.id)}
-              onToggleFavorite={onToggleFavorite}
+              onToggleFavorite={toggleFavorite}
               onUse={onUse}
               onPreview={setPreviewing}
               style={{ animationDelay: `${i * 35}ms` }}
@@ -111,7 +120,7 @@ export default function TemplateGallery({ query = '', category, onCategory, favo
         template={previewing}
         onClose={() => setPreviewing(null)}
         favorite={!!previewing && favorites.includes(previewing.id)}
-        onToggleFavorite={onToggleFavorite}
+        onToggleFavorite={toggleFavorite}
         onUse={onUse}
       />
     </div>

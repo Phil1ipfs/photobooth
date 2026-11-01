@@ -19,7 +19,7 @@ import { usePrefs } from '../context/PrefsContext';
 import { useStrips } from '../context/StripsContext';
 import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
-import { FREE_STRIP_LIMIT } from '../config/catalog';
+import { FEATURES, FREE_STRIP_LIMIT } from '../config/catalog';
 import { compositionSignature, createStripGate } from '../lib/stripGate';
 import {
   LIVE,
@@ -41,6 +41,7 @@ import { canvasToBlob, downloadBlob, printBlob, shareBlob, stripFileName } from 
 import { playBeep, playShutter } from '../lib/sfx';
 
 const SESSION_KEY = 'pb:booth-session';
+const ACTION_FEATURES = { save: 'cloud_save', favorite: 'favorites', share: 'share_print', print: 'share_print', gif: 'live_strips' };
 const empty = (n) => Array(n).fill(null);
 // The photos a layout shows: the first `n` captured photos (empty slots → null).
 // Read-only view — never written back, so switching layouts can't lose photos.
@@ -62,6 +63,13 @@ export default function Booth() {
   const toast = useToast();
   const { query, navigate } = useRouter();
   const ent = useEntitlements();
+  const requireFeature = (feature) => {
+    if (!ent.ready) return false;
+    if (ent.canUseFeature(feature)) return true;
+    const label = FEATURES[feature].label;
+    ent.openUpgrade({ feature, title: `Unlock ${label}`, description: `${label} is part of Premium. Free accounts can take and download classic photos.` });
+    return false;
+  };
 
   // ----- Session state (restored if the user left to log in) -----
   const restored = useRef(readSession());
@@ -96,7 +104,8 @@ export default function Booth() {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   // ----- Live Strip mode (boomerang). Photo mode state above is untouched by it. -----
-  const mode = prefs.boothMode === 'live' ? 'live' : 'photo';
+  const liveAllowed = ent.ready && ent.canUseFeature('live_strips');
+  const mode = prefs.boothMode === 'live' && liveAllowed ? 'live' : 'photo';
   // One Live clip per slot — the single source of truth, independent of the layout
   // (like `captured` for photos): [{ id, frames, thumb } | null, …]. Frames are canvases
   // captured once per clip (never per-frame state).
@@ -244,10 +253,16 @@ export default function Booth() {
       setTemplateId(DEFAULT_TEMPLATE_ID);
     }
     if (!ent.canUseLayout(prefs.layout)) setPref({ layout: DEFAULT_LAYOUT_ID });
-    if (!ent.canUseFilter(prefs.filter || 'auto')) setPref({ filter: 'auto' });
+    if (!ent.canUseFilter(prefs.filter || 'auto')) setPref({ filter: 'none' });
     if (prefs.hd && !ent.canUseFeature('hd_export')) setPref({ hd: false });
+    if (prefs.boothMode === 'live' && !ent.canUseFeature('live_strips')) {
+      runRef.current++;
+      setLivePhase(null);
+      setCount(0);
+      setPref({ boothMode: 'photo' });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entReady, ent.entitlements, template.id, prefs.layout, prefs.filter]);
+  }, [entReady, ent.entitlements, template.id, prefs.layout, prefs.filter, prefs.boothMode]);
 
   // ----- Capture -----
   const triggerFlash = useCallback(() => {
@@ -268,6 +283,7 @@ export default function Booth() {
       stop();
       return;
     }
+    if (!ent.ready) return;
     if (claimingRef.current) return; // a click is already being checked
     if (camera.status !== 'ready') {
       toast.error('Camera not ready', camera.error || 'Please wait for the camera to start.');
@@ -353,6 +369,7 @@ export default function Booth() {
       stop(); // Stop works during the countdown and while recording (clips already taken are kept)
       return;
     }
+    if (!requireFeature('live_strips')) return;
     if (claimingRef.current) return;
     if (camera.status !== 'ready') {
       toast.error('Camera not ready', camera.error || 'Please wait for the camera to start.');
@@ -369,7 +386,7 @@ export default function Booth() {
     const freshStrip = slot < 0;
     const emptyStrip = liveVisible.every((c) => !c);
     if (freshStrip) slot = 0;
-    // A Live Strip is a photostrip creation like any other (Free: counts toward the 2).
+    // Live Strips are Premium; each capture still gets its own creation record.
     if (freshStrip || emptyStrip || !gate.active) {
       if (freshStrip || emptyStrip) gate.beginStrip();
       claimingRef.current = true;
@@ -480,6 +497,7 @@ export default function Booth() {
 
   const setMode = (next) => {
     if (busy || livePhase || next === mode) return;
+    if (next === 'live' && !requireFeature('live_strips')) return;
     setResultOpen(false);
     setPref({ boothMode: next });
   };
@@ -569,7 +587,14 @@ export default function Booth() {
   };
 
   const withAction = (id, fn) => async () => {
+    if (!ent.ready) return;
+    if (ACTION_FEATURES[id] && !requireFeature(ACTION_FEATURES[id])) return;
+    if (mode === 'live' && !requireFeature('live_strips')) return;
     if (!ensurePhotos()) return;
+    if (!ent.canUseTemplate(template) || !ent.canUseLayout(layout) || !ent.canUseFilter(prefs.filter || 'auto')) {
+      openUpgrade({ feature: 'premium_templates', title: 'Unlock this look', description: 'Choose the Classic template and Original filter for a free download, or upgrade for every look.' });
+      return;
+    }
     setBusyAction(id);
     try {
       if (!(await authorizeExport())) return;
@@ -759,7 +784,7 @@ export default function Booth() {
     printBlob(blob);
   });
 
-  const actions =
+  const baseActions =
     mode === 'live'
       ? [
           {
@@ -780,6 +805,7 @@ export default function Booth() {
           { id: 'share', label: 'Share', icon: 'share', onClick: share },
           { id: 'print', label: 'Print', icon: 'printer', onClick: print },
         ];
+  const actions = baseActions.map((action) => ({ ...action, locked: !!ACTION_FEATURES[action.id] && !ent.canUseFeature(ACTION_FEATURES[action.id]) }));
 
   const onCamera = (id) => setPref({ cameraId: id });
   const cameraValue = prefs.cameraId || camera.activeDeviceId;
@@ -807,8 +833,10 @@ export default function Booth() {
           </span>
           {user ? (
             <>
-              <Link to="/favorites" className="icon-btn icon-btn-plain booth-fav" aria-label="Favorites">
-                <Icon name="heart" size={20} />
+              <Link to="/favorites" className="icon-btn icon-btn-plain booth-fav" aria-label={ent.canUseFeature('favorites') ? 'Favorites' : 'Favorites (Premium)'} onClick={(e) => {
+                if (!requireFeature('favorites')) e.preventDefault();
+              }}>
+                <Icon name={ent.canUseFeature('favorites') ? 'heart' : 'lock'} size={20} />
               </Link>
               <Link to="/dashboard" aria-label="Back to dashboard" className="booth-avatar">
                 <Avatar user={user} size={36} />
@@ -855,7 +883,7 @@ export default function Booth() {
               <span aria-hidden="true">📸</span> Photo
             </button>
             <button type="button" aria-pressed={mode === 'live'} onClick={() => setMode('live')} disabled={busy || !!livePhase}>
-              <span aria-hidden="true">🎞️</span> Live
+              <span aria-hidden="true">🎞️</span> Live {!liveAllowed && <Icon name="lock" size={14} />}
             </button>
           </div>
           {mode === 'live' ? (
@@ -888,7 +916,7 @@ export default function Booth() {
               className={`take-btn${busy ? ' is-busy' : ''}`}
               icon={busy ? 'x' : 'camera'}
               onClick={startCapture}
-              disabled={!busy && camera.status !== 'ready'}
+              disabled={!busy && (!ent.ready || camera.status !== 'ready')}
             >
               {busy ? 'Stop' : filled === slotCount && prefs.captureMode === 'auto' ? 'Take New Strip' : 'Take Photo'}
             </Button>
@@ -968,6 +996,7 @@ export default function Booth() {
             actions={actions}
             favorite={!!saved?.favorite}
             onFavorite={favorite}
+            favoriteLocked={!ent.canUseFeature('favorites')}
             busyAction={busyAction}
           />
         </div>
@@ -998,7 +1027,7 @@ export default function Booth() {
             <p className="muted">
               {mode === 'live'
                 ? 'It plays forward and back on a loop. Download it as a video or GIF, or keep it in My Photos.'
-                : 'Download your strip, keep it in My Photos, or strike another pose.'}
+                : ent.canUseFeature('cloud_save') ? 'Download your strip, keep it in My Photos, or strike another pose.' : 'Download your classic photo strip, or strike another pose. Upgrade for Live Strips, LDR and saving to My Photos.'}
             </p>
             <div className="result-actions">
               <Button icon="download" block onClick={download} loading={busyAction === 'download'} disabled={!!busyAction} data-autofocus>
@@ -1017,13 +1046,13 @@ export default function Booth() {
               )}
               <Button
                 variant="outline"
-                icon={saved ? 'check' : 'save'}
+                icon={!ent.canUseFeature('cloud_save') ? 'lock' : saved ? 'check' : 'save'}
                 block
                 onClick={saveAction}
                 loading={busyAction === 'save'}
                 disabled={!!busyAction}
               >
-                {saved ? 'Saved to My Photos' : 'Save to My Photos'}
+                {saved ? 'Saved to My Photos' : ent.canUseFeature('cloud_save') ? 'Save to My Photos' : 'Save to My Photos · Premium'}
               </Button>
               <Button variant="ghost" icon="refresh" block onClick={mode === 'live' ? clearLive : clearPhotos} disabled={!!busyAction}>
                 Create Another
