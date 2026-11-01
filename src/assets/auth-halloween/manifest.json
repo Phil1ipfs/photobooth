@@ -1,0 +1,33 @@
+{
+  "generator": "Built-in imagegen",
+  "assets": [
+    {
+      "file": "witch-ghost.webp",
+      "width": 480,
+      "height": 439,
+      "transparentPixels": 114029,
+      "bytes": 23220
+    },
+    {
+      "file": "smiling-pumpkin.webp",
+      "width": 400,
+      "height": 400,
+      "transparentPixels": 71615,
+      "bytes": 28596
+    },
+    {
+      "file": "heart-lantern.webp",
+      "width": 260,
+      "height": 284,
+      "transparentPixels": 51829,
+      "bytes": 11978
+    },
+    {
+      "file": "foliage-border.webp",
+      "width": 1200,
+      "height": 400,
+      "transparentPixels": 331640,
+      "bytes": 104246
+    }
+  ]
+}
