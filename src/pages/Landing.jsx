@@ -114,7 +114,16 @@ export default function Landing() {
             </span>
             <DoodleHeart size={44} className="hero-doodle-1" />
             <HeartSwirl size={90} className="hero-swirl" />
-            <img src={pumpkin} className="hero-pumpkin" width="640" height="533" alt="" fetchPriority="high" />
+            <div className="hero-pumpkin">
+              <span className="hero-pumpkin-glow" />
+              <img src={pumpkin} className="hero-pumpkin-image" width="640" height="533" alt="" fetchPriority="high" />
+              <svg className="hero-pumpkin-shade" viewBox="0 0 640 533" fill="#4b210e">
+                <path d="M263 242Q283 213 317 179Q323 174 327 184Q337 215 340 256Q307 255 266 245Z" />
+                <path d="M452 269Q458 222 476 190Q480 184 484 192Q511 223 525 263Q490 263 453 272Z" />
+                <path d="M369 296L396 255Q400 249 404 257L424 299Q401 305 370 299Z" />
+                <path d="M244 278Q272 301 317 317L316 337Q331 343 344 341L349 329Q393 337 436 334L441 347Q456 350 466 346L469 331Q501 320 526 303Q513 349 457 387L450 371L425 372L417 390Q377 392 344 387L344 363L320 356L306 373Q267 351 244 278Z" />
+              </svg>
+            </div>
             <Bat className="hero-bat-one" /><Bat className="hero-bat-two" />
             <AutumnLeaf className="hero-leaf-one" /><AutumnLeaf className="hero-leaf-two" />
             <Sparkle size={18} className="deco-twinkle" style={{ right: '6%', top: '14%' }} />

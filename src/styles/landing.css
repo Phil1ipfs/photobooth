@@ -706,7 +706,39 @@
 }
 .hero-free-note { margin-top: 8px; font-size: var(--fs-xs); color: var(--text-2); }
 .hero-free-note a { color: var(--primary-ink); white-space: nowrap; }
-.hero-pumpkin { position: absolute; width: 32%; height: auto; right: -5%; bottom: 0; z-index: 3; pointer-events: none; filter: drop-shadow(0 12px 12px #b9512522); }
+.hero-pumpkin { position: absolute; width: 32%; right: -5%; bottom: 0; z-index: 3; pointer-events: none; isolation: isolate; }
+.hero-pumpkin-image { display: block; width: 100%; height: auto; filter: drop-shadow(0 12px 12px #b9512522); }
+.hero-pumpkin-glow {
+  position: absolute;
+  inset: 15% -8% -4% 8%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #ffb14566, #ff9b2524 42%, transparent 72%);
+  opacity: .45;
+  animation: pumpkin-lantern-glow 8s ease-in-out infinite;
+}
+.hero-pumpkin-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  filter: blur(.8px);
+  opacity: 0;
+  animation: pumpkin-lantern-shade 8s ease-in-out infinite;
+}
+@keyframes pumpkin-lantern-shade {
+  0%, 28%, 82%, 100% { opacity: 0; }
+  43%, 67% { opacity: .97; }
+}
+@keyframes pumpkin-lantern-glow {
+  0%, 28%, 82%, 100% { opacity: .45; }
+  43%, 67% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-pumpkin-shade { animation: none; opacity: 0; }
+  .hero-pumpkin-glow { animation: none; opacity: .45; }
+}
 .halloween-bat, .autumn-leaf { position: absolute; pointer-events: none; }
 .halloween-bat { width: 52px; color: #3c2032; }
 .hero-bat-one { top: 13%; right: -1%; transform: rotate(22deg); }

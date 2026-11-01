@@ -6,6 +6,8 @@ Created with the built-in imagegen tool for PhotoBooth. Transparent originals ar
 - `pumpkin.webp`: used beside the hero's real template previews.
 - `great-vibes.woff2`: Latin subset of Great Vibes from Google Fonts, bundled so seasonal script lettering does not depend on an external request. Distributed under the included `great-vibes-OFL.txt` (SIL Open Font License 1.1).
 
+The homepage pumpkin uses a slow eight-second light cycle. An SVG shade follows the carved eyes, nose and mouth in the original 640 × 533 coordinate space, while a CSS amber halo fades with it. The raster artwork stays unchanged. Reduced-motion preferences keep a steady lit state. If replacing the pumpkin illustration, update the SVG paths in `Landing.jsx` to match its carved openings.
+
 ## Final generation prompts
 
 ### Ghost
