@@ -1,0 +1,191 @@
+{
+  "generator": "Built-in imagegen; SVG details follow the existing code-native icon style",
+  "assets": [
+    {
+      "file": "forest-desktop.webp",
+      "transparentBackground": false,
+      "bytes": 65976,
+      "width": 1672,
+      "height": 941,
+      "originalWidth": 1672,
+      "originalHeight": 941,
+      "transparentPixels": 0,
+      "partialAlphaPixels": 0,
+      "cornerAlpha": [
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "forest-mobile.webp",
+      "transparentBackground": false,
+      "bytes": 72564,
+      "width": 900,
+      "height": 1599,
+      "originalWidth": 941,
+      "originalHeight": 1672,
+      "transparentPixels": 0,
+      "partialAlphaPixels": 0,
+      "cornerAlpha": [
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "pumpkins-candles.webp",
+      "transparentBackground": true,
+      "bytes": 163576,
+      "width": 1100,
+      "height": 733,
+      "originalWidth": 1536,
+      "originalHeight": 1024,
+      "transparentPixels": 440534,
+      "partialAlphaPixels": 365766,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fence-lantern.webp",
+      "transparentBackground": true,
+      "bytes": 226100,
+      "width": 900,
+      "height": 1125,
+      "originalWidth": 1122,
+      "originalHeight": 1402,
+      "transparentPixels": 566825,
+      "partialAlphaPixels": 445664,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "maple-branch.webp",
+      "transparentBackground": true,
+      "bytes": 205188,
+      "width": 1200,
+      "height": 800,
+      "originalWidth": 1536,
+      "originalHeight": 1024,
+      "transparentPixels": 732292,
+      "partialAlphaPixels": 227708,
+      "cornerAlpha": [
+        0,
+        243,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "rose-moon.webp",
+      "transparentBackground": true,
+      "bytes": 67484,
+      "width": 640,
+      "height": 427,
+      "originalWidth": 1536,
+      "originalHeight": 1024,
+      "transparentPixels": 136928,
+      "partialAlphaPixels": 136352,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "crimson-maple-leaf.webp",
+      "transparentBackground": true,
+      "bytes": 42950,
+      "width": 512,
+      "height": 341,
+      "originalWidth": 1536,
+      "originalHeight": 1024,
+      "transparentPixels": 121105,
+      "partialAlphaPixels": 53487,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "double-heart.webp",
+      "transparentBackground": true,
+      "bytes": 25128,
+      "width": 320,
+      "height": 320,
+      "originalWidth": 1254,
+      "originalHeight": 1254,
+      "transparentPixels": 75022,
+      "partialAlphaPixels": 27378,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "pumpkins-candles-mobile.webp",
+      "transparentBackground": true,
+      "bytes": 55304,
+      "width": 600,
+      "height": 400
+    },
+    {
+      "file": "fence-lantern-mobile.webp",
+      "transparentBackground": true,
+      "bytes": 77574,
+      "width": 500,
+      "height": 625
+    },
+    {
+      "file": "maple-branch-mobile.webp",
+      "transparentBackground": true,
+      "bytes": 72502,
+      "width": 640,
+      "height": 427
+    },
+    {
+      "file": "rose-moon-mobile.webp",
+      "transparentBackground": true,
+      "bytes": 21720,
+      "width": 320,
+      "height": 213
+    }
+  ],
+  "vectors": [
+    {
+      "file": "bat.svg",
+      "bytes": 240
+    },
+    {
+      "file": "ember.svg",
+      "bytes": 390
+    },
+    {
+      "file": "floating-heart.svg",
+      "bytes": 558
+    },
+    {
+      "file": "heart-outline.svg",
+      "bytes": 284
+    },
+    {
+      "file": "sparkle.svg",
+      "bytes": 199
+    }
+  ]
+}

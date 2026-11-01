@@ -14,6 +14,9 @@ import Button from '../components/common/Button';
 import { SelectPill } from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import FeatureGate from '../components/billing/FeatureGate';
+import LdrLobbyArtwork from '../components/ldr/LdrLobbyArtwork';
+import doubleHeart from '../assets/ldr-halloween/double-heart.webp';
+import '../styles/ldr-lobby.css';
 import { Avatar } from '../components/common/misc';
 import CameraPreview from '../components/photobooth/CameraPreview';
 import TemplateSelector from '../components/photobooth/TemplateSelector';
@@ -100,14 +103,16 @@ function LdrPage() {
 function Lobby({ busy, error, onCreate, onJoin, initialCode }) {
   const [value, setValue] = useState(initialCode);
   return (
-    <div className="booth ldr">
+    <div className="booth ldr ldr-lobby-scene">
+      <LdrLobbyArtwork />
+      <a href="#main" className="skip-link">Skip to room controls</a>
       <header className="booth-header">
         <Logo to="/dashboard" />
       </header>
       <main id="main" className="ldr-lobby page-enter">
-        <section className="card ldr-lobby-card">
-          <span className="ldr-hearts" aria-hidden="true">💞</span>
-          <h1>LDR Photobooth</h1>
+        <section className="card ldr-lobby-card" aria-labelledby="ldr-lobby-title">
+          <img className="ldr-hearts" src={doubleHeart} width="320" height="320" alt="" />
+          <h1 id="ldr-lobby-title">LDR Photobooth</h1>
           <p className="muted">
             Take photos together from two different places. Create a private room, send your partner the link, and you’ll both
             count down and smile at the same time — then get one shared strip.
@@ -129,6 +134,10 @@ function Lobby({ busy, error, onCreate, onJoin, initialCode }) {
               onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
               placeholder="ABC123"
               aria-label="Room code"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'ldr-join-error' : undefined}
+              autoComplete="off"
+              spellCheck={false}
               autoCapitalize="characters"
               inputMode="text"
             />
@@ -137,7 +146,7 @@ function Lobby({ busy, error, onCreate, onJoin, initialCode }) {
             </Button>
           </form>
           {error && (
-            <p className="form-error" role="alert">
+            <p id="ldr-join-error" className="form-error" role="alert">
               {error}
             </p>
           )}

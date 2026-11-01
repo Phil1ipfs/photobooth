@@ -1,0 +1,203 @@
+/* Romantic Halloween lobby. Camera/room styles continue to use booth.css. */
+.booth.ldr-lobby-scene {
+  --text: #f9e9ee;
+  --text-2: #d6bec8;
+  --text-3: #bea3af;
+  --primary-ink: #f0a1bb;
+  --border: #66414f;
+  --surface: #241a20;
+  --pink-soft: #35212b;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  isolation: isolate;
+  color: var(--text);
+  color-scheme: dark;
+  background: #170f14;
+}
+
+.ldr-lobby-scene .booth-header {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  background: linear-gradient(180deg, #1b1018aa, #1b101822);
+  border-color: #f1b0c516;
+  box-shadow: none;
+}
+.ldr-lobby-scene .logo-name { color: #faecf1; }
+.ldr-lobby-scene .logo-mark,
+.ldr-lobby-scene .logo-sub { color: #f0a1bb; }
+.ldr-lobby-scene .logo-sub { font-family: 'Halloween Great Vibes', var(--font-script); }
+.ldr-lobby-scene .logo:focus-visible { outline: 2px solid #f5aec7; outline-offset: 7px; border-radius: 5px; }
+
+.ldr-lobby-scene .ldr-lobby {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: calc(100svh - 82px);
+  padding: clamp(52px, 9vh, 120px) 24px clamp(150px, 20vh, 260px);
+}
+.ldr-lobby-scene .ldr-lobby-card {
+  gap: 17px;
+  width: min(492px, 100%);
+  padding: 34px 32px 32px;
+  border-radius: 24px;
+  border: 1px solid #f1bdd52d;
+  background: linear-gradient(140deg, #35242bd9, #271d24db 60%, #322028cf);
+  box-shadow: inset 0 1px 0 #ffe1ed08, 0 25px 65px -24px #080408cc;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.ldr-lobby-scene .ldr-hearts {
+  justify-self: center;
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+  margin: 0 0 2px;
+  filter: drop-shadow(0 4px 10px #d72b5b25);
+}
+.ldr-lobby-scene .ldr-lobby-card h1 {
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  color: #faeef3;
+}
+.ldr-lobby-scene .ldr-lobby-card .muted {
+  color: #d6bec8;
+  font-size: 1rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.ldr-lobby-scene .ldr-lobby-card > .btn-primary {
+  --btn-h: 60px;
+  margin-top: 3px;
+  border-color: #ed80a354;
+  background: linear-gradient(180deg, #b72b54, #a81d47);
+  color: #fff4f8;
+  box-shadow: inset 0 1px 0 #ffd8e727, 0 14px 30px -14px #db275f80;
+  font-size: 1.125rem;
+}
+.ldr-lobby-scene .ldr-lobby-card > .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c3315e, #b1234e);
+}
+.ldr-lobby-scene .ldr-or {
+  font-size: .75rem;
+  color: #bea3af;
+  letter-spacing: .1em;
+}
+.ldr-lobby-scene .ldr-join { gap: 10px; align-items: center; }
+.ldr-lobby-scene .ldr-join .input {
+  height: 56px;
+  border-radius: 15px;
+  border-color: #c787a044;
+  background: #1b13196b;
+  color: #fceaf2;
+  font-size: 1rem;
+  caret-color: #f0a1bb;
+}
+.ldr-lobby-scene .ldr-join .input::placeholder { color: #b99eaa; opacity: 1; }
+.ldr-lobby-scene .ldr-join .input:hover { border-color: #dd9cb76b; }
+.ldr-lobby-scene .ldr-join .input:focus {
+  border-color: #efa0bb;
+  box-shadow: 0 0 0 3px #ef86ae24;
+}
+.ldr-lobby-scene .ldr-join .btn {
+  --btn-h: 50px;
+  padding-inline: 24px;
+  border-color: #d295ad;
+  color: #f3c3d5;
+}
+.ldr-lobby-scene .ldr-join .btn:hover:not(:disabled) { background: #ca6e9220; }
+.ldr-lobby-scene .ldr-lobby-card .btn:focus-visible {
+  outline: 3px solid #ffd4e5;
+  outline-offset: 4px;
+}
+.ldr-lobby-scene .ldr-fine { color: #bea3af; font-size: .75rem; line-height: 1.6; }
+.ldr-lobby-scene .form-error { color: #ffb4c4; text-align: left; }
+.ldr-lobby-scene .input[aria-invalid='true'] { border-color: #f095ad; }
+
+.ldr-scene-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.ldr-scene-layer,
+.ldr-scene-art > img,
+.ldr-scene-shade { position: absolute; display: block; }
+.ldr-scene-layer img { display: block; width: 100%; height: auto; }
+.ldr-scene-forest { inset: 0; }
+.ldr-scene-forest img { width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+.ldr-scene-shade {
+  inset: 0;
+  background: linear-gradient(180deg, #170d1240, transparent 25%, #170d121a 65%, #10090e35), radial-gradient(ellipse at 50% 42%, #160b124d, transparent 60%);
+}
+.ldr-scene-moon { width: clamp(210px, 25vw, 430px); right: 1%; top: 3%; opacity: .76; }
+.ldr-scene-branch { width: clamp(330px, 44vw, 720px); right: -2%; top: -1%; }
+.ldr-scene-pumpkins { width: clamp(225px, 30vw, 470px); left: -1%; bottom: 11%; }
+.ldr-scene-fence { width: clamp(190px, 22vw, 330px); right: -1%; bottom: 10%; }
+.ldr-scene-bat { width: 45px; opacity: .8; }
+.ldr-scene-bat-one { right: 26%; top: 18%; transform: rotate(16deg); }
+.ldr-scene-bat-two { right: 10%; top: 33%; width: 33px; transform: rotate(-16deg); }
+.ldr-scene-bat-three { right: 17%; top: 48%; width: 35px; transform: rotate(-5deg); opacity: .65; }
+.ldr-scene-leaf { width: 80px; opacity: .65; }
+.ldr-scene-leaf-one { left: 10%; top: 44%; transform: rotate(-25deg); }
+.ldr-scene-leaf-two { right: 8%; top: 27%; width: 66px; transform: rotate(26deg); }
+.ldr-scene-heart { width: 35px; opacity: .7; animation: ldr-heart-drift 16s ease-in-out infinite; }
+.ldr-scene-heart-1 { left: 6%; top: 28%; }
+.ldr-scene-heart-2 { right: 7%; top: 59%; animation-delay: -5s; }
+.ldr-scene-heart-3 { left: 13%; bottom: 24%; width: 28px; animation-delay: -9s; }
+.ldr-scene-heart-4 { right: 43%; bottom: 17%; width: 24px; animation-delay: -12s; }
+.ldr-scene-ember { width: 16px; opacity: .7; animation: ldr-ember-glow 7s ease-in-out infinite; }
+.ldr-scene-ember-1 { left: 4%; top: 19%; }
+.ldr-scene-ember-2 { right: 25%; top: 32%; animation-delay: -2s; }
+.ldr-scene-ember-3 { left: 21%; top: 62%; animation-delay: -4s; }
+.ldr-scene-ember-4 { right: 19%; bottom: 23%; animation-delay: -1s; }
+.ldr-scene-ember-5 { left: 39%; bottom: 18%; animation-delay: -3s; }
+.ldr-scene-ember-6 { right: 8%; top: 74%; animation-delay: -5s; }
+@keyframes ldr-heart-drift { 50% { transform: translateY(-9px) rotate(6deg); opacity: .46; } }
+@keyframes ldr-ember-glow { 50% { opacity: .25; transform: translateY(-4px); } }
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .ldr-scene-pumpkins { width: 220px; left: -25px; bottom: 8%; }
+  .ldr-scene-fence { width: 180px; right: -25px; bottom: 8%; }
+}
+@media (max-width: 700px) {
+  .ldr-lobby-scene .booth-header { height: 72px; padding-inline: 20px; }
+  .ldr-lobby-scene .ldr-lobby {
+    min-height: calc(100svh - 72px);
+    padding: 94px 20px 190px;
+  }
+  .ldr-lobby-scene .ldr-lobby-card { padding: 27px 23px; gap: 16px; border-radius: 22px; }
+  .ldr-lobby-scene .ldr-hearts { width: 60px; height: 60px; }
+  .ldr-lobby-scene .ldr-lobby-card h1 { font-size: 1.75rem; }
+  .ldr-lobby-scene .ldr-lobby-card .muted { font-size: .9375rem; line-height: 1.65; }
+  .ldr-lobby-scene .ldr-lobby-card > .btn-primary { --btn-h: 56px; font-size: 1rem; }
+  .ldr-lobby-scene .ldr-join .input { height: 52px; }
+  .ldr-lobby-scene .ldr-join .btn { --btn-h: 48px; padding-inline: 20px; }
+  .ldr-scene-moon { width: 230px; top: 0; right: -20px; }
+  .ldr-scene-branch { width: clamp(260px, 80vw, 360px); top: -5px; right: -45px; }
+  .ldr-scene-pumpkins { width: clamp(180px, 45vw, 250px); left: -19px; bottom: 7%; }
+  .ldr-scene-fence { width: clamp(145px, 34vw, 200px); right: -26px; bottom: 7%; }
+  .ldr-scene-bat-one { width: 33px; right: 36%; top: 14%; }
+  .ldr-scene-bat-two { width: 28px; right: 9%; top: 23%; }
+  .ldr-scene-bat-three { display: none; }
+  .ldr-scene-leaf-one { width: 53px; left: -9px; top: 49%; }
+  .ldr-scene-leaf-two { width: 55px; right: -10px; top: 24%; }
+  .ldr-scene-heart-1 { left: 0; top: 32%; width: 28px; }
+  .ldr-scene-heart-2 { right: 0; top: 61%; width: 28px; }
+  .ldr-scene-heart-3 { left: 12%; bottom: 19%; width: 23px; }
+  .ldr-scene-heart-4 { right: 43%; bottom: 13%; width: 21px; }
+  .ldr-scene-ember-3 { left: 4%; }
+}
+@media (max-width: 360px) {
+  .ldr-lobby-scene .ldr-lobby { padding-inline: 14px; }
+  .ldr-lobby-scene .ldr-lobby-card { padding-inline: 20px; }
+  .ldr-lobby-scene .ldr-join { gap: 8px; }
+  .ldr-lobby-scene .ldr-join .btn { padding-inline: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ldr-scene-heart,
+  .ldr-scene-ember { animation: none; }
+}
