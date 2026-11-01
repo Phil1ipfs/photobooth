@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Halloween Great Vibes';
+  src: url('../assets/halloween/great-vibes.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 .landing {
   background:
     radial-gradient(900px 500px at 80% -10%, color-mix(in srgb, var(--pink) 70%, transparent), transparent 70%),
@@ -28,11 +36,11 @@
 /* ---------- Hero ---------- */
 .hero {
   display: grid;
-  grid-template-columns: 1fr 1.05fr;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
-  gap: 40px;
-  padding: 56px 0 72px;
-  min-height: min(calc(100vh - var(--header-h)), 760px);
+  gap: 36px;
+  padding: 38px 0 36px;
+  min-height: 620px;
 }
 
 .hero-copy {
@@ -96,20 +104,23 @@
 
 .hero-art {
   position: relative;
-  height: 560px;
+  height: 550px;
 }
 
 .hero-card {
   position: absolute;
+  height: 86%;
   transition: transform var(--dur-3) var(--ease);
   animation: floaty 7s ease-in-out infinite;
 }
 
 .hero-card .tpl-preview {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
   border-radius: 6px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: none;
+  filter: drop-shadow(0 18px 16px rgba(83, 30, 45, .2));
 }
 
 .hero-card.tpl-skeleton {
@@ -118,25 +129,27 @@
 
 .hero-polaroid {
   --rot: -9deg;
-  left: 2%;
+  left: 8%;
   top: 14%;
-  width: 26%;
+  width: 25%;
+  height: 78%;
   animation-delay: -2s;
 }
 
 .hero-main {
   --rot: 4deg;
-  left: 32%;
+  left: 34%;
   top: 2%;
-  width: 33%;
+  width: 30%;
+  height: 96%;
   z-index: 2;
 }
 
 .hero-pink {
   --rot: 9deg;
-  left: 64%;
+  left: 63%;
   top: 9%;
-  width: 30%;
+  width: 27%;
   animation-delay: -4s;
 }
 
@@ -150,9 +163,9 @@
 
 .hero-good {
   position: absolute;
-  left: 6%;
-  bottom: 8%;
-  font-size: 2.6rem;
+  left: 1%;
+  bottom: 10%;
+  font-size: 2.3rem;
   line-height: 0.8;
   color: var(--primary-ink);
   transform: rotate(-12deg);
@@ -186,8 +199,8 @@
 .feature {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 30px 24px;
+  gap: 14px;
+  padding: 26px 20px;
 }
 
 .feature + .feature {
@@ -228,10 +241,10 @@
 .popular {
   position: relative;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 40px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 32px;
   align-items: center;
-  padding: 80px 0 40px;
+  padding: 54px 0 24px;
   scroll-margin-top: 80px;
 }
 
@@ -253,6 +266,7 @@
   list-style: none;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 4px;
   scrollbar-width: thin;
   scrollbar-color: var(--accent) transparent;
 }
@@ -264,9 +278,9 @@
 
 .popular-item {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: center;
-  width: 128px;
+  width: 104px;
   padding: 0;
   border: 0;
   background: none;
@@ -277,9 +291,9 @@
 
 .popular-item .tpl-preview {
   width: 100%;
-  height: 380px;
-  object-fit: cover;
-  object-position: top;
+  height: 310px;
+  object-fit: contain;
+  object-position: bottom;
   transition: transform var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease);
 }
 
@@ -301,13 +315,12 @@
 
 /* ---------- About ---------- */
 .about {
-  padding: 60px 0;
+  padding: 36px 0 16px;
   scroll-margin-top: 80px;
 }
 
 .about-head {
   max-width: 620px;
-  margin-bottom: 34px;
 }
 
 .about-head p {
@@ -329,7 +342,11 @@
 }
 
 .step {
-  padding: 28px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  column-gap: 16px;
+  align-content: start;
+  padding: 24px;
   transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
 }
 
@@ -348,17 +365,18 @@
 }
 
 .step h3 {
-  font-size: var(--fs-lg);
-  margin-bottom: 8px;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
 }
 
 .step p {
+  grid-column: 2;
   font-size: var(--fs-sm);
 }
 
 /* ---------- CTA ---------- */
 .cta {
-  padding: 40px 0 20px;
+  padding: 0 0 20px;
 }
 
 .cta-card {
@@ -367,7 +385,7 @@
   display: grid;
   justify-items: center;
   gap: 12px;
-  padding: 64px 24px;
+  padding: 34px 220px;
   text-align: center;
   border-radius: var(--r-xl);
   background:
@@ -627,6 +645,7 @@
   .popular-copy p {
     max-width: 480px;
   }
+  .cta-card { padding-inline: 180px 70px; }
 }
 
 @media (max-width: 640px) {
@@ -653,7 +672,7 @@
     width: 112px;
   }
   .popular-item .tpl-preview {
-    height: 330px;
+    height: 310px;
   }
   .demo {
     grid-template-columns: 1fr;
@@ -664,6 +683,121 @@
   .hero-ctas .btn {
     flex: 1 1 160px;
   }
+}
+
+/* Seasonal artwork stays decorative; template previews use the real renderer. */
+.halloween-landing {
+  --autumn: #c65a2b;
+  --font-script: 'Halloween Great Vibes', 'Great Vibes', cursive;
+  background:
+    radial-gradient(ellipse 500px 380px at 78% 18%, #efab7b20, transparent 80%),
+    radial-gradient(ellipse 700px 500px at 15% 5%, #f7dde240, transparent 75%),
+    var(--bg);
+}
+.halloween-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 22px;
+  color: var(--primary-ink);
+  font-size: var(--fs-xs);
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+.hero-free-note { margin-top: 8px; font-size: var(--fs-xs); color: var(--text-2); }
+.hero-free-note a { color: var(--primary-ink); white-space: nowrap; }
+.hero-pumpkin { position: absolute; width: 32%; height: auto; right: -5%; bottom: 0; z-index: 3; pointer-events: none; filter: drop-shadow(0 12px 12px #b9512522); }
+.halloween-bat, .autumn-leaf { position: absolute; pointer-events: none; }
+.halloween-bat { width: 52px; color: #3c2032; }
+.hero-bat-one { top: 13%; right: -1%; transform: rotate(22deg); }
+.hero-bat-two { top: 38%; left: -3%; width: 38px; transform: rotate(-14deg); }
+.autumn-leaf { width: 36px; color: var(--autumn); }
+.hero-leaf-one { left: 0; bottom: 31%; transform: rotate(-26deg); }
+.hero-leaf-two { right: 1%; top: 43%; width: 45px; transform: rotate(24deg); }
+.popular-gallery { min-width: 0; }
+.popular-tier { font-size: 10px; line-height: 1.6; letter-spacing: .04em; color: var(--primary-ink); background: var(--pink-soft); padding: 1px 8px; border-radius: 20px; }
+.popular-tier-free { color: var(--text-2); background: var(--surface-sunk); }
+.popular-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.popular-controls > span { color: var(--text-2); font-size: var(--fs-xs); }
+.popular-controls > div { display: flex; gap: 8px; }
+.popular-controls .icon-btn { border: 1px solid var(--border); background: var(--surface); width: 38px; height: 38px; }
+.popular-controls .icon-btn:disabled { opacity: .35; cursor: default; }
+.about-intro { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 32px; min-height: 230px; padding-block: 12px 28px; }
+.about-art { position: relative; flex: 0 0 220px; height: 200px; }
+.about-art img { position: absolute; right: 0; bottom: -8px; width: 190px; height: auto; filter: drop-shadow(0 8px 10px #b9512518); }
+.about-leaf-one { left: 0; top: 24%; width: 30px; transform: rotate(-35deg); }
+.about-leaf-two { right: -8px; top: -6%; width: 34px; transform: rotate(25deg); }
+.about-heart { left: 7%; bottom: 12%; color: var(--accent); transform: rotate(-15deg); }
+.step-icon { grid-row: 1 / 3; color: var(--primary-ink); }
+.cta-ghost { position: absolute; width: 180px; height: auto; bottom: -6px; left: 28px; pointer-events: none; }
+.cta-card > :not(.cta-ghost):not(.autumn-leaf):not(.deco) { position: relative; z-index: 1; }
+.cta-leaf-one { right: 7%; bottom: 18%; width: 42px; color: #e59544; transform: rotate(28deg); }
+.cta-leaf-two { left: 3%; top: 15%; width: 28px; color: #e59544; transform: rotate(-24deg); }
+
+@media (min-width: 1025px) {
+  .halloween-landing .hero-title { font-size: clamp(2.8rem, 4.7vw, 4.1rem); }
+  .halloween-landing .hero-script { display: block; width: max-content; }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  .halloween-landing .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .halloween-landing .hero-title { font-size: clamp(2.6rem, 5.3vw, 3.5rem); }
+  .halloween-landing .hero-art { height: 430px; }
+  .halloween-landing .hero-script { display: block; padding-right: .25em; margin-left: 0; font-size: 1.3em; }
+  .halloween-landing .hero-script-heart { width: 28px; right: -12px; }
+  .halloween-landing .hero-good { font-size: 1.8rem; }
+}
+@media (max-width: 640px) {
+  .halloween-landing .hero { gap: 20px; padding: 30px 0 24px; }
+  .halloween-landing .hero-copy { text-align: center; }
+  .halloween-landing .hero-title { font-size: clamp(2.8rem, 10vw, 3.6rem); }
+  .halloween-landing .hero-script { display: block; width: max-content; margin: 0 auto; padding-right: .3em; font-size: 1.4em; }
+  .halloween-landing .hero-script-heart { width: 30px; right: -10px; }
+  .halloween-label { font-size: 11px; margin-bottom: 16px; }
+  .hero-text { margin: 18px auto 0; font-size: var(--fs-base); max-width: 350px; }
+  .hero-ctas { margin-top: 22px; gap: 10px; }
+  .hero-ctas .btn { padding-inline: 14px; flex-basis: 140px; }
+  .hero-note { justify-content: center; margin-top: 16px; font-size: 11px; }
+  .hero-free-note { font-size: 11px; }
+  .halloween-landing .hero-art { height: 350px; max-width: 390px; }
+  .hero-pumpkin { right: -1%; width: 30%; }
+  .hero-good { display: none; }
+  .hero-bat-one { right: 0; width: 35px; }
+  .hero-bat-two { left: -1%; width: 28px; }
+  .hero-leaf-one { width: 26px; }
+  .hero-leaf-two { right: 1%; width: 28px; }
+  .features-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .feature { gap: 10px; padding: 20px 10px; }
+  .feature-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .feature-icon svg { width: 18px; }
+  .feature-title { font-size: var(--fs-sm); }
+  .feature-text { font-size: 11px; }
+  .feature + .feature { border-top: 0; }
+  .feature:nth-child(even) { border-left: 1px solid var(--border); }
+  .feature:nth-child(n + 3) { border-top: 1px solid var(--border); }
+  .popular { padding-top: 36px; }
+  .popular-copy { gap: 10px; }
+  .popular-copy .eyebrow { margin-bottom: 0; }
+  .popular-controls > span { max-width: 160px; }
+  .about { padding-top: 20px; }
+  .about-intro { padding: 0 0 24px; gap: 0; flex-direction: column; align-items: flex-start; }
+  .about-art { align-self: flex-end; height: 130px; width: 160px; flex-basis: auto; margin-top: 12px; }
+  .about-art img { width: 140px; }
+  .about-leaf-one { left: -20px; }
+  .about-leaf-two { right: 0; }
+  .steps { gap: 12px; }
+  .step { padding: 20px; }
+  .cta-card { padding: 30px 20px 135px; gap: 10px; }
+  .cta-card h2 { font-size: 1.8rem; }
+  .cta-card p { font-size: var(--fs-sm); }
+  .cta-ghost { width: 135px; left: 12px; bottom: -8px; }
+  .cta-leaf-one { right: 12%; bottom: 12%; width: 34px; }
+  .cta-card .cta-heart { right: 9%; top: auto; bottom: 14%; }
+  .cta-card .cta-btn { padding-inline: 20px; }
+}
+@media (max-width: 360px) {
+  .halloween-landing .hero-art { height: 300px; }
+  .feature { padding-inline: 5px; gap: 7px; }
+  .feature-icon { width: 28px; height: 28px; }
 }
 
 @media (max-width: 420px) {
