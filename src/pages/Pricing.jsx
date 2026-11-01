@@ -15,6 +15,7 @@ import { LAYOUTS, TEMPLATES } from '../templates/data';
 import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
 import { track } from '../lib/analytics';
+import useCheckoutEligibility from '../components/billing/useCheckoutEligibility';
 
 const COMPARE = [
   { label: 'Classic photos, countdown & flash', free: true, premium: true },
@@ -46,12 +47,14 @@ export default function Pricing() {
   const { entitlements, isPremium } = useEntitlements();
   const { navigate } = useRouter();
   const toast = useToast();
+  const checkout = useCheckoutEligibility();
   const plans = enabledPlans();
   const [planId, setPlanId] = useState(plans[0]?.id);
   const [busy, setBusy] = useState(false);
   const plan = plans.find((p) => p.id === planId) || plans[0];
 
   const upgrade = async () => {
+    if (!checkout.allowed || busy || !plan) return;
     track('upgrade_clicked', { source: 'pricing', plan: plan.id });
     if (!user) {
       navigate(`/signup?next=${encodeURIComponent('/pricing')}`);
@@ -141,17 +144,19 @@ export default function Pricing() {
             </ul>
             {isPremium ? (
               <>
-                <Button block variant="soft" icon="sparkle" onClick={upgrade} loading={busy}>
-                  Extend {plan.period}
+                <Button block variant="soft" icon="sparkle" onClick={upgrade} loading={busy} disabled={!checkout.allowed}>
+                  {checkout.pending ? 'Checking your plan…' : checkout.reason === 'admin' ? 'Full access' : `Extend ${plan.period}`}
                 </Button>
                 <p className="plan-note">{describePlan(entitlements).detail}</p>
+                {checkout.message && <p className="plan-note" role="status">{checkout.message}</p>}
               </>
             ) : (
               <>
-                <Button block size="lg" icon="sparkle" onClick={upgrade} loading={busy} className="plan-cta">
-                  {user ? 'Upgrade to Premium' : 'Sign up & upgrade'}
+                <Button block size="lg" icon="sparkle" onClick={upgrade} loading={busy} className="plan-cta" disabled={!checkout.allowed}>
+                  {checkout.pending ? 'Checking your plan…' : user ? 'Upgrade to Premium' : 'Sign up & upgrade'}
                 </Button>
                 <p className="plan-note">One-time payment · No auto-renewal · GCash, Maya or card via PayMongo</p>
+                {checkout.message && <p className="plan-note" role="status">{checkout.message}</p>}
               </>
             )}
           </article>

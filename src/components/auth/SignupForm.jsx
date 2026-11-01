@@ -52,7 +52,7 @@ export default function SignupForm({ onSuccess, next }) {
     if (loading || !validate()) return;
     setLoading(true);
     try {
-      const result = await signUp({ ...values, termsVersion: TERMS_VERSION });
+      const result = await signUp({ ...values, termsVersion: TERMS_VERSION, next });
       onSuccess(result);
     } catch (err) {
       if (err.field) setErrors({ [err.field]: err.message });

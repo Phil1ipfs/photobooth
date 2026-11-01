@@ -18,6 +18,7 @@ import { useEntitlements } from '../context/EntitlementsContext';
 import { describePlan } from '../lib/entitlements';
 import { formatPrice, getPlan } from '../config/plans';
 import { startCheckout } from '../lib/billing';
+import useCheckoutEligibility from '../components/billing/useCheckoutEligibility';
 import { isAnalyticsEnabled, setAnalyticsEnabled, track } from '../lib/analytics';
 
 function Section({ id, title, description, children }) {
@@ -132,6 +133,7 @@ function BillingSection() {
   const { entitlements, isPremium, isAdmin, loading, stripUsage } = useEntitlements();
   const toast = useToast();
   const [busy, setBusy] = useState(null);
+  const checkout = useCheckoutEligibility();
   const plan = describePlan(entitlements);
   const billingPlan = getPlan(entitlements.billingPlan);
   const extendPlan = getPlan(EXTEND_PLAN);
@@ -199,7 +201,7 @@ function BillingSection() {
 
       <div className="billing-actions">
         {!isPremium && (
-          <Button icon="sparkle" to="/pricing" onClick={() => track('upgrade_clicked', { source: 'settings' })}>
+          <Button icon="sparkle" to={checkout.pending ? undefined : '/pricing'} disabled={checkout.pending} onClick={() => track('upgrade_clicked', { source: 'settings' })}>
             {entitlements.status === 'expired' ? 'Renew Premium' : 'Upgrade to Premium'}
           </Button>
         )}
@@ -208,7 +210,9 @@ function BillingSection() {
             variant="outline"
             icon="sparkle"
             loading={busy === 'extend'}
+            disabled={!checkout.allowed}
             onClick={run('extend', () => {
+              if (!checkout.allowed) return;
               track('upgrade_clicked', { source: 'settings_extend' });
               return startCheckout(EXTEND_PLAN);
             })}
@@ -217,6 +221,7 @@ function BillingSection() {
           </Button>
         )}
       </div>
+      {checkout.message && <p className="billing-detail" role="status">{checkout.message}</p>}
       <small className="muted">
         Payments (GCash, Maya or card) are handled securely by PayMongo. Premium doesn’t renew automatically, so
         there’s nothing to cancel — PhotoBooth never sees or stores your payment details.

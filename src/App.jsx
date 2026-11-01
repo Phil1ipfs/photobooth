@@ -22,6 +22,7 @@ import Pricing from './pages/Pricing';
 import BillingSuccess from './pages/BillingSuccess';
 import Admin from './pages/Admin';
 import ConsentGate from './components/auth/ConsentGate';
+import { safeNext } from './lib/authRedirect';
 
 // path → [component, access] where access is 'public' | 'auth' (signed-in only) | 'guest' (signed-out only)
 const ROUTES = {
@@ -57,7 +58,8 @@ function Routes() {
   if (!ready && access !== 'public') return <div className="route-loading" role="status" aria-label="Loading"><span className="btn-spinner" /></div>;
 
   if (access === 'auth' && !user) return <Redirect to={`/login?next=${encodeURIComponent(path + search)}`} />;
-  if (access === 'guest' && user) return <Redirect to="/dashboard" />;
+  const params = new URLSearchParams(search);
+  if (access === 'guest' && user && params.get('reauth') !== '1') return <Redirect to={safeNext(params.get('next'))} />;
 
   // Keyed by path so each page mounts fresh (and plays its enter transition).
   return <Page key={path} />;

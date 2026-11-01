@@ -152,6 +152,15 @@ test('checkout: Premium users can renew in the last 30 days only; admins never p
 
 // --- confirm ----------------------------------------------------------------
 
+test('checkout: unknown Premium expiry cannot create a payment session', async () => {
+  state.tier = 'premium'; state.activeSub = null;
+  const before = state.created.length;
+  const result = await call(checkout, { token: 'valid-token', body: { planId: 'premium_monthly' } });
+  assert.equal(result.status, 409);
+  assert.equal(state.created.length, before);
+  state.tier = 'free';
+});
+
 test('confirm: validates input and ownership', async () => {
   assert.equal((await call(confirm, { body: { reference: 'PB-abcdefgh' } })).status, 401);
   assert.equal((await call(confirm, { token: 'valid-token', body: { reference: 'nope' } })).status, 400);

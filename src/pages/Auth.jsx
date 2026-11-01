@@ -10,9 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { firstName } from '../lib/format';
 import { PASSWORD_RULES, validateNewPassword } from '../lib/validation';
-
-// Only allow internal redirects.
-const safeNext = (next) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard');
+import { safeNext } from '../lib/authRedirect';
 
 function NotConfiguredNotice() {
   const { configured } = useAuth();
@@ -49,7 +47,7 @@ export function SignupPage() {
   const { user } = useAuth();
   const [result, setResult] = useState(null);
 
-  if (user && !result) return <Redirect to="/dashboard" />;
+  if (user && !result) return <Redirect to={safeNext(next)} />;
 
   if (result?.needsConfirmation) {
     return (
@@ -62,7 +60,7 @@ export function SignupPage() {
             We sent a confirmation link to <strong>{result.email}</strong>. Open it on this device to finish signing up —
             then you’ll be logged in automatically.
           </p>
-          <Button variant="outline" block to="/login">
+          <Button variant="outline" block to={`/login?next=${encodeURIComponent(safeNext(next))}`}>
             Back to Log In
           </Button>
           <Button variant="ghost" block to="/booth">
@@ -82,7 +80,7 @@ export function SignupPage() {
           </span>
           <p className="muted">Your account is ready. Take classic photos and download your strips, or explore Premium for Live Strips, LDR and cloud saves.</p>
           <Button size="lg" block iconRight="arrow-right" onClick={() => navigate(safeNext(next), { replace: true })} data-autofocus>
-            {next === '/booth' ? 'Back to the Photobooth' : 'Go to my Dashboard'}
+            {safeNext(next) === '/pricing' ? 'Continue to Premium' : next === '/booth' ? 'Back to the Photobooth' : 'Continue to PhotoBooth'}
           </Button>
           <Button variant="ghost" block to="/booth">
             Open Photobooth

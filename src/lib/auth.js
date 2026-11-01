@@ -2,6 +2,7 @@
 // UI code only talks to these functions; see supabase/schema.sql for the tables.
 import { EMAIL_RE, passwordIssues } from './validation';
 import { STRIPS_BUCKET, isSupabaseConfigured, supabase } from './supabase';
+import { safeNext } from './authRedirect';
 
 export class AuthError extends Error {
   constructor(message, field) {
@@ -96,7 +97,7 @@ export function setRemember(remember) {
  * Create an account. Returns { user, needsConfirmation }. When the Supabase
  * project requires email confirmation, `user` is null until the link is clicked.
  */
-export async function signUp({ name, email, password, termsVersion }) {
+export async function signUp({ name, email, password, termsVersion, next }) {
   const sb = client();
   const cleanEmail = normalizeEmail(email);
   if (!name.trim()) throw new AuthError('Please enter your name.', 'name');
@@ -109,7 +110,7 @@ export async function signUp({ name, email, password, termsVersion }) {
     email: cleanEmail,
     password,
     // terms_version is stored with the new account (with server time) by handle_new_user().
-    options: { data: { name: name.trim(), terms_version: termsVersion }, emailRedirectTo: `${window.location.origin}/dashboard` },
+    options: { data: { name: name.trim(), terms_version: termsVersion }, emailRedirectTo: `${window.location.origin}${safeNext(next)}` },
   });
   if (error) throw friendly(error);
   // Supabase hides "already registered" behind an obfuscated user with no identities.
@@ -157,7 +158,7 @@ export async function signInWithProvider(provider, next = '/dashboard') {
   setRemember(true);
   const { error } = await sb.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: `${window.location.origin}${next}` },
+    options: { redirectTo: `${window.location.origin}${safeNext(next)}` },
   });
   if (error) throw friendly(error);
 }

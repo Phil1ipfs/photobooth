@@ -7,9 +7,9 @@ const { env, getPaymongo, siteUrl } = require('../_lib/clients');
 const { HttpError, handler, readJson, requireUser, send } = require('../_lib/http');
 const { supabaseRepo } = require('../_lib/repo');
 const { getPurchasablePlan } = require('../_lib/plans');
+const { getCheckoutEligibility, RENEW_WINDOW_DAYS } = require('../../src/config/checkoutPolicy');
 
 const DEFAULT_METHODS = 'card,gcash,paymaya';
-const RENEW_WINDOW_DAYS = 30; // Premium can be renewed in the last 30 days of the current pass
 
 const paymentMethods = () =>
   (env('PAYMONGO_PAYMENT_METHODS') || DEFAULT_METHODS)
@@ -27,7 +27,9 @@ module.exports = handler(async (req, res) => {
   const tier = await repo.currentTier(user.id);
   if (tier === 'admin') throw new HttpError(409, 'Admins already have every Premium feature.');
   const active = await repo.getActiveSubscription(user.id);
-  if (active?.current_period_end && new Date(active.current_period_end) - Date.now() > RENEW_WINDOW_DAYS * 864e5) {
+  const eligibility = getCheckoutEligibility({ tier, currentPeriodEnd: active?.current_period_end });
+  if (eligibility.reason === 'unknown') throw new HttpError(409, 'Your Premium details could not be loaded. Refresh your account before renewing.');
+  if (eligibility.reason === 'early') {
     const until = new Date(active.current_period_end).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
     throw new HttpError(409, `Your Premium runs until ${until}. You can renew in its last ${RENEW_WINDOW_DAYS} days.`);
   }

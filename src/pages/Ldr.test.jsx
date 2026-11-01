@@ -179,9 +179,10 @@ test('two people get the same strip from one shared countdown', async () => {
   await waitFor(() => expect(b().getByTestId('strip').textContent).toBe('xxxx'), { timeout: 5000 });
   expect([...mockBus.files.keys()].filter((k) => k.includes('/u1/'))).toHaveLength(2);
   expect([...mockBus.files.keys()].filter((k) => k.includes('/u2/'))).toHaveLength(2);
-  expect(a().getByText('Your shared strip is ready!')).toBeTruthy();
+  await waitFor(() => expect(a().getByText('Your shared strip is ready!')).toBeTruthy());
 
   // The finished-strip filter updates both devices and the result image.
+  await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(2));
   const results = screen.getAllByRole('dialog');
   fireEvent.change(within(results[0]).getByRole('combobox', { name: 'Photo filter' }), { target: { value: 'noir' } });
   await waitFor(() => expect(b().getByTestId('strip')).toHaveAttribute('data-filter', 'noir'));
