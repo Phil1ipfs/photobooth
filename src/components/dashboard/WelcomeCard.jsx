@@ -4,11 +4,13 @@ import { Sparkle, DoodleHeart, HeartSwirl } from '../common/misc';
 import { LogoMark } from '../common/Logo';
 import TemplatePreview from '../templates/TemplatePreview';
 import { getTemplate } from '../../templates/data';
+import WelcomeDecor from './WelcomeDecor';
 
 export default function WelcomeCard({ recent = [] }) {
   const shots = recent.slice(0, 2);
   return (
     <section className="welcome-card" aria-labelledby="welcome-title">
+      <WelcomeDecor />
       <div className="welcome-copy">
         <span className="welcome-camera" aria-hidden="true">
           <LogoMark size={46} />
