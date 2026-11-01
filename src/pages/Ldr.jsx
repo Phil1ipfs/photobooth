@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Logo from '../components/common/Logo';
 import Icon from '../components/common/Icon';
 import Button from '../components/common/Button';
+import { SelectPill } from '../components/common/Input';
 import Modal from '../components/common/Modal';
 import { Avatar } from '../components/common/misc';
 import CameraPreview from '../components/photobooth/CameraPreview';
@@ -27,12 +28,12 @@ import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { useMusic } from '../context/MusicContext';
 import { supabase } from '../lib/supabase';
-import { FREE_STRIP_LIMIT } from '../config/catalog';
+import { FILTERS, FREE_STRIP_LIMIT } from '../config/catalog';
 import { compositionSignature, createStripGate } from '../lib/stripGate';
 import { LDR_ARRANGEMENTS, arrange, createRoom, downloadShot, getArrangement, inviteLink, joinRoom, planFor, removeMyShots, topicFor, uploadShot } from '../lib/ldr';
 import { TEMPLATES, getTemplate } from '../templates/data';
 import { renderStrip } from '../templates/render';
-import { canvasToBlob, downloadBlob, shareBlob, stripFileName } from '../lib/share';
+import { canvasToBlob, downloadBlob, printBlob, shareBlob, stripFileName } from '../lib/share';
 import { playBeep, playShutter } from '../lib/sfx';
 import { track } from '../lib/analytics';
 
@@ -45,7 +46,7 @@ const RUNNING = ['countdown', 'pose', 'waiting'];
 /** Validate settings from the partner (trust boundary). */
 const cleanSettings = (s) =>
   s && TEMPLATES.some((t) => t.id === s.templateId) && LDR_ARRANGEMENTS.some((a) => a.id === s.arrangementId)
-    ? { templateId: s.templateId, arrangementId: s.arrangementId, caption: String(s.caption || '').slice(0, 40) }
+    ? { templateId: s.templateId, arrangementId: s.arrangementId, caption: String(s.caption || '').slice(0, 40), filter: FILTERS.some((f) => f.id === s.filter) ? s.filter : 'auto' }
     : null;
 
 export default function Ldr() {
@@ -161,10 +162,10 @@ function Room({ room, onLeave }) {
   const send = useCallback((payload) => channelRef.current?.send({ type: 'broadcast', event: 'msg', payload }), []);
 
   // ----- Shared settings -----
-  const [settings, setSettingsState] = useState({ templateId: ent.canUseTemplate(getTemplate('miles-apart')) ? 'miles-apart' : 'love-hearts', arrangementId: 'alternate', caption: '' });
+  const [settings, setSettingsState] = useState({ templateId: ent.canUseTemplate(getTemplate('miles-apart')) ? 'miles-apart' : 'love-hearts', arrangementId: 'alternate', caption: '', filter: 'auto' });
   const template = getTemplate(settings.templateId);
   const arrangement = getArrangement(settings.arrangementId);
-  const plan = useMemo(() => planFor(arrangement, template), [arrangement, template]);
+  const plan = useMemo(() => planFor(arrangement), [arrangement]);
 
   // ----- Session -----
   const [phase, setPhase] = useState('idle'); // idle | countdown | pose | waiting | done
@@ -214,7 +215,7 @@ function Room({ room, onLeave }) {
   const runSession = async (msg) => {
     const next = cleanSettings(msg.settings);
     if (!next || !/^[a-z0-9]{4,12}$/.test(msg.sid || '')) return;
-    const p = planFor(getArrangement(next.arrangementId), getTemplate(next.templateId));
+    const p = planFor(getArrangement(next.arrangementId));
     const countdown = Math.min(5, Math.max(3, Number(msg.countdown) || 3));
     setSettingsState(next);
     const run = ++runRef.current;
@@ -433,6 +434,23 @@ function Room({ room, onLeave }) {
     }
     updateSettings({ arrangementId: a.id });
   };
+  const chooseFilter = (id) => {
+    if (!ent.canUseFilter(id)) {
+      return ent.openUpgrade({ feature: 'premium_filters', title: `Unlock the ${FILTERS.find((f) => f.id === id).label} filter`, description: 'Upgrade to use every photo filter.' });
+    }
+    updateSettings({ filter: id });
+  };
+  const filterControl = (
+    <SelectPill
+      className="filter-select"
+      icon="wand"
+      label="Photo filter"
+      value={settings.filter}
+      onChange={chooseFilter}
+      options={FILTERS.map((f) => ({ value: f.id, label: `${f.label}${ent.canUseFilter(f.id) ? '' : ' ✦ Premium'}` }))}
+      disabled={locked}
+    />
+  );
 
   // ----- Export: same rules as the booth (each person's own plan & free strips) -----
   const gateRef = useRef(null);
@@ -447,7 +465,7 @@ function Room({ room, onLeave }) {
   const limitReached = !!stripUsage && !stripUsage.unlimited && stripUsage.used >= stripUsage.limit;
 
   const exportBlob = async (scale = 1) => {
-    const canvas = await renderStrip(template, { photos, aspect: ASPECT, layout: plan.layout, caption: settings.caption, scale });
+    const canvas = await renderStrip(template, { photos, aspect: ASPECT, layout: plan.layout, caption: settings.caption, filter: settings.filter, scale });
     return { blob: await canvasToBlob(canvas, 'image/png'), width: canvas.width, height: canvas.height };
   };
 
@@ -456,9 +474,12 @@ function Room({ room, onLeave }) {
     if (!ent.canUseTemplate(template) || !ent.canUseLayout(plan.layout.id)) {
       return upgrade('This strip uses a Premium look', 'Your partner picked a Premium template or layout. Upgrade to download or save it — or pick a free look and retake together.');
     }
+    if (!ent.canUseFilter(settings.filter)) {
+      return ent.openUpgrade({ feature: 'premium_filters', title: 'This strip uses a Premium filter', description: 'Upgrade to export it, or choose a free photo filter.' });
+    }
     setBusyAction(id);
     try {
-      const signature = compositionSignature({ photos, templateId: template.id, layoutId: plan.layout.id, filter: 'auto', aspect: ASPECT });
+      const signature = compositionSignature({ photos, templateId: template.id, layoutId: plan.layout.id, filter: settings.filter, aspect: ASPECT });
       const res = await gate.authorizeExport(signature, { template: template.id, layout: plan.layout.id });
       if (!res.allowed) {
         ent.openUpgrade({ feature: 'unlimited_strips', title: `You’ve reached your ${FREE_STRIP_LIMIT} free photostrips`, description: 'Upgrade to Premium to create unlimited photostrips.' });
@@ -512,10 +533,16 @@ function Room({ room, onLeave }) {
     toast.success('Saved to My Photos', 'Find it any time in your gallery.');
   });
 
+  const print = withAction('print', async () => {
+    const { blob } = await exportBlob();
+    printBlob(blob);
+  });
+
   const actions = [
     { id: 'download', label: 'Download', icon: 'download', onClick: download, disabled: !complete },
     { id: 'save', label: saved ? 'Saved' : 'Save', icon: saved ? 'check' : 'save', onClick: save, disabled: !complete },
     { id: 'share', label: 'Share', icon: 'share', onClick: share, disabled: !complete },
+    { id: 'print', label: 'Print', icon: 'printer', onClick: print, disabled: !complete },
   ];
 
   // ----- Invite -----
@@ -574,7 +601,7 @@ function Room({ room, onLeave }) {
                 : !ready && partner.ready
                   ? `${partner.name} is ready — tap “I’m ready”.`
                   : phase === 'done'
-                    ? 'Your shared strip is ready!'
+                    ? complete ? 'Your shared strip is ready!' : 'Retake together to fill this arrangement.'
                     : 'Tap “I’m ready” when you’re both set. The countdown starts together.';
 
   return (
@@ -677,6 +704,7 @@ function Room({ room, onLeave }) {
                 </button>
               ))}
             </div>
+            {filterControl}
             <label className="ldr-caption">
               <span>Caption</span>
               <input
@@ -692,7 +720,7 @@ function Room({ room, onLeave }) {
 
           <MusicThemeHint templateId={settings.templateId} onUse={chooseTemplate} />
           <TemplateSelector value={settings.templateId} onChange={locked ? () => {} : chooseTemplate} aspect={ASPECT} layout={plan.layout} favorites={prefs.favoriteTemplates} />
-          <StripPreview template={template} layout={plan.layout} photos={photos} aspect={ASPECT} caption={settings.caption} actions={actions} busyAction={busyAction} />
+          <StripPreview template={template} layout={plan.layout} photos={photos} aspect={ASPECT} caption={settings.caption} filter={settings.filter} actions={actions} busyAction={busyAction} />
         </div>
       </main>
 
@@ -714,7 +742,7 @@ function Room({ room, onLeave }) {
       <Modal open={resultOpen} onClose={() => setResultOpen(false)} width={520} className="result-modal">
         <div className="result">
           <div className="result-strip">
-            <ResultImage template={template} photos={photos} layout={plan.layout} caption={settings.caption} />
+            <ResultImage template={template} photos={photos} layout={plan.layout} caption={settings.caption} filter={settings.filter} />
           </div>
           <div className="result-body">
             <span className="badge">
@@ -724,12 +752,16 @@ function Room({ room, onLeave }) {
               Together, from miles apart <span aria-hidden="true">💞</span>
             </h2>
             <p className="muted">You both have this strip. Download it, keep it in My Photos, or retake together.</p>
+            {filterControl}
             <div className="result-actions">
               <Button icon="download" block onClick={download} loading={busyAction === 'download'} disabled={!!busyAction} data-autofocus>
                 Download
               </Button>
               <Button variant="outline" icon={saved ? 'check' : 'save'} block onClick={save} loading={busyAction === 'save'} disabled={!!busyAction}>
                 {saved ? 'Saved to My Photos' : 'Save to My Photos'}
+              </Button>
+              <Button variant="outline" icon="printer" block onClick={print} loading={busyAction === 'print'} disabled={!!busyAction || !complete}>
+                Print
               </Button>
               <Button variant="ghost" icon="refresh" block onClick={requestRetake} disabled={!!busyAction || retake === 'sent'}>
                 {retake === 'sent' ? 'Asked your partner…' : 'Retake together'}
@@ -742,14 +774,14 @@ function Room({ room, onLeave }) {
   );
 }
 
-function ResultImage({ template, photos, layout, caption }) {
+function ResultImage({ template, photos, layout, caption, filter }) {
   const [url, setUrl] = useState(null);
   useEffect(() => {
     let alive = true;
-    renderStrip(template, { photos, aspect: ASPECT, layout, caption, scale: 0.6 }).then((c) => alive && setUrl(c.toDataURL('image/jpeg', 0.9)));
+    renderStrip(template, { photos, aspect: ASPECT, layout, caption, filter, scale: 0.6 }).then((c) => alive && setUrl(c.toDataURL('image/jpeg', 0.9)));
     return () => {
       alive = false;
     };
-  }, [template, photos, layout, caption]);
+  }, [template, photos, layout, caption, filter]);
   return url ? <img src={url} alt={`Your shared ${template.name} strip`} className="strip-img" /> : null;
 }

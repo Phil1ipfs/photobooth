@@ -1791,6 +1791,15 @@ kbd {
   font-size: var(--fs-sm);
   min-height: 1.4em;
 }
+.ldr .camera-actions {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  margin-top: 14px;
+}
+.ldr .camera-actions > .btn {
+  width: 100%;
+  max-width: 440px;
+}
 .ldr-room,
 .ldr-settings {
   display: grid;

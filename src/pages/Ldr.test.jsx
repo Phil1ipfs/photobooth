@@ -64,6 +64,9 @@ jest.mock('../lib/supabase', () => ({
 }));
 
 const mockUserCtx = createContext(null);
+const mockCanUseFilter = jest.fn(() => true);
+const mockOpenUpgrade = jest.fn();
+const mockAuthorizeExport = jest.fn(async () => ({ allowed: true }));
 jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: require('react').useContext(mockUserCtx) }) }));
 jest.mock('../context/PrefsContext', () => ({ usePrefs: () => ({ prefs: { mirror: true, sound: false, countdown: 3, favoriteTemplates: [] } }) }));
 jest.mock('../context/StripsContext', () => ({ useStrips: () => ({ strips: [], save: jest.fn() }) }));
@@ -72,19 +75,38 @@ jest.mock('../context/ToastContext', () => {
   return { useToast: () => toast };
 });
 jest.mock('../context/EntitlementsContext', () => ({
-  useEntitlements: () => ({ canUseTemplate: () => true, canUseLayout: () => true, canUseFeature: () => true, openUpgrade: jest.fn(), stripUsage: null, setStripUsage: () => {} }),
+  useEntitlements: () => ({ canUseTemplate: () => true, canUseLayout: () => true, canUseFilter: mockCanUseFilter, canUseFeature: () => true, openUpgrade: mockOpenUpgrade, stripUsage: null, setStripUsage: () => {} }),
 }));
 jest.mock('../context/MusicContext', () => ({
   useMusic: () => ({ subscribe: () => () => {}, snapshot: () => ({}), applyRemote: () => {}, playing: false, track: { id: 'x' } }),
 }));
 jest.mock('../components/photobooth/useCamera', () => () => ({ status: 'ready', videoRef: { current: null }, capture: () => `data:image/jpeg;base64,${Math.random().toString(36).slice(2)}` }));
 jest.mock('../components/photobooth/CameraPreview', () => ({ countdown }) => <div data-testid="count">{countdown || ''}</div>);
-jest.mock('../components/photobooth/StripPreview', () => ({ photos }) => <div data-testid="strip">{photos.map((p) => (p ? 'x' : '-')).join('')}</div>);
-jest.mock('../components/photobooth/TemplateSelector', () => () => null);
+jest.mock('../components/photobooth/StripPreview', () => ({ photos, layout, filter, actions }) => (
+  <div>
+    <div data-testid="strip" data-layout={layout.id} data-filter={filter}>{photos.map((p) => (p ? 'x' : '-')).join('')}</div>
+    {actions.map((a) => <button key={a.id} disabled={a.disabled} onClick={a.onClick}>{a.label}</button>)}
+  </div>
+));
+jest.mock('../components/photobooth/TemplateSelector', () => ({ value, onChange }) => (
+  <select aria-label="Template" value={value} onChange={(e) => onChange(e.target.value)}>
+    <option value="miles-apart">Miles Apart</option>
+    <option value="happy-halloween">Happy Halloween</option>
+  </select>
+));
 jest.mock('../components/photobooth/MusicPlayer', () => () => null);
 jest.mock('../components/photobooth/MusicThemeHint', () => () => null);
 jest.mock('../components/common/Logo', () => () => null);
-jest.mock('../templates/render', () => ({ renderStrip: () => new Promise(() => {}) }));
+jest.mock('../templates/render', () => ({ renderStrip: jest.fn(async () => ({
+  width: 600, height: 1800,
+  toDataURL: () => 'data:image/png;base64,c3RyaXA=',
+  toBlob: (cb) => cb(new Blob(['strip'], { type: 'image/png' })),
+})) }));
+jest.mock('../lib/share', () => ({ ...jest.requireActual('../lib/share'), printBlob: jest.fn() }));
+jest.mock('../lib/stripGate', () => ({
+  ...jest.requireActual('../lib/stripGate'),
+  createStripGate: () => ({ state: { id: 'creation-1' }, authorizeExport: mockAuthorizeExport }),
+}));
 jest.mock('../lib/analytics', () => ({ track: () => {} }));
 jest.mock('../lib/sfx', () => ({ playBeep: () => {}, playShutter: () => {} }));
 jest.mock('../lib/router', () => ({ useRouter: () => ({ query: new URLSearchParams('room=ABC123'), navigate: () => {} }) }));
@@ -100,6 +122,21 @@ beforeAll(() => {
 
 // eslint-disable-next-line import/first
 import Ldr from './Ldr';
+// eslint-disable-next-line import/first
+import { renderStrip } from '../templates/render';
+// eslint-disable-next-line import/first
+import { printBlob } from '../lib/share';
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockCanUseFilter.mockImplementation(() => true);
+  mockAuthorizeExport.mockResolvedValue({ allowed: true });
+  renderStrip.mockImplementation(async () => ({
+    width: 600, height: 1800,
+    toDataURL: () => 'data:image/png;base64,c3RyaXA=',
+    toBlob: (cb) => cb(new Blob(['strip'], { type: 'image/png' })),
+  }));
+});
 
 const people = {
   u1: { id: 'u1', name: 'Alex' },
@@ -144,6 +181,21 @@ test('two people get the same strip from one shared countdown', async () => {
   expect([...mockBus.files.keys()].filter((k) => k.includes('/u2/'))).toHaveLength(2);
   expect(a().getByText('Your shared strip is ready!')).toBeTruthy();
 
+  // The finished-strip filter updates both devices and the result image.
+  const results = screen.getAllByRole('dialog');
+  fireEvent.change(within(results[0]).getByRole('combobox', { name: 'Photo filter' }), { target: { value: 'noir' } });
+  await waitFor(() => expect(b().getByTestId('strip')).toHaveAttribute('data-filter', 'noir'));
+  await waitFor(() => expect(within(results[1]).getByRole('combobox', { name: 'Photo filter' })).toHaveValue('noir'));
+  expect(renderStrip).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ filter: 'noir' }));
+
+  // Print is available in Your Strip and prints the same filtered composition.
+  expect(a().getByRole('button', { name: 'Print' })).toBeEnabled();
+  renderStrip.mockClear();
+  fireEvent.click(within(results[0]).getByRole('button', { name: 'Print' }));
+  await waitFor(() => expect(printBlob).toHaveBeenCalledWith(expect.any(Blob)));
+  expect(renderStrip).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ filter: 'noir', layout: expect.objectContaining({ id: 'strip-1x4' }) }));
+  expect(mockAuthorizeExport).toHaveBeenCalledTimes(1);
+
   // Retake needs the partner's approval.
   fireEvent.click(a().getAllByRole('button', { name: /Retake together/ })[0]);
   await waitFor(() => expect(screen.getByText(/Alex wants to take the photos again/)).toBeTruthy());
@@ -153,6 +205,36 @@ test('two people get the same strip from one shared countdown', async () => {
   unmount();
   // Leaving deletes each person's own uploads.
   await waitFor(() => expect(mockBus.files.size).toBe(0));
+});
+
+test('arrangements and filters update both partners before taking photos', async () => {
+  render(<><Person id="u1" /><Person id="u2" /></>);
+  const a = within(screen.getByTestId('side-u1'));
+  const b = within(screen.getByTestId('side-u2'));
+  await waitFor(() => expect(a.getByText('Sam')).toBeTruthy());
+  await waitFor(() => expect(b.getByText('Alex')).toBeTruthy());
+  expect(a.getByRole('button', { name: 'Print' })).toBeDisabled();
+
+  for (const template of ['miles-apart', 'happy-halloween']) {
+    fireEvent.change(a.getByRole('combobox', { name: 'Template' }), { target: { value: template } });
+    await waitFor(() => expect(b.getByRole('combobox', { name: 'Template' })).toHaveValue(template));
+    for (const [name, layout, count] of [['Duo', 'strip-1x2', 2], ['Side by side', 'grid-2x3', 6], ['Couple grid', 'grid-2x2', 4], ['Alternating', 'strip-1x4', 4]]) {
+      fireEvent.click(b.getByRole('button', { name: new RegExp(`^${name}`) }));
+      await waitFor(() => expect(a.getByTestId('strip')).toHaveAttribute('data-layout', layout));
+      expect(b.getByTestId('strip')).toHaveAttribute('data-layout', layout);
+      expect(a.getByTestId('strip')).toHaveTextContent('-'.repeat(count));
+    }
+  }
+  fireEvent.click(a.getByRole('button', { name: /^Romantic scrapbook/ }));
+  await waitFor(() => expect(b.getByRole('combobox', { name: 'Template' })).toHaveValue('miles-apart'));
+  fireEvent.change(b.getByRole('combobox', { name: 'Photo filter' }), { target: { value: 'warm' } });
+  await waitFor(() => expect(a.getByTestId('strip')).toHaveAttribute('data-filter', 'warm'));
+
+  mockCanUseFilter.mockImplementation((id) => id !== 'sepia');
+  fireEvent.change(a.getByRole('combobox', { name: 'Photo filter' }), { target: { value: 'sepia' } });
+  expect(mockOpenUpgrade).toHaveBeenCalledWith(expect.objectContaining({ feature: 'premium_filters' }));
+  expect(a.getByTestId('strip')).toHaveAttribute('data-filter', 'warm');
+  expect(b.getByTestId('strip')).toHaveAttribute('data-filter', 'warm');
 });
 
 test('a partner leaving mid-countdown stops the session on the other side', async () => {

@@ -1,5 +1,6 @@
 import { LDR_ARRANGEMENTS, arrange, getArrangement, planFor } from './ldr';
 import { getTemplate, LAYOUTS, TEMPLATES } from '../templates/data';
+import { computeLayout } from '../templates/render';
 
 const shots = { A: ['a0', 'a1', 'a2'], B: ['b0', 'b1', 'b2'] };
 
@@ -16,11 +17,18 @@ test('arrangements fill every slot with both people', () => {
   });
 });
 
-test('templates with their own layout keep it (e.g. Halloween 1 × 2)', () => {
-  const plan = planFor(getArrangement('side'), getTemplate('happy-halloween'));
-  expect(plan.layout.id).toBe('strip-1x2');
-  expect(arrange(plan.slots, shots)).toEqual(['a0', 'b0']);
-  expect(plan.rounds).toBe(1);
+test.each(['miles-apart', 'happy-halloween'])('every arrangement changes the actual photo geometry for %s', (id) => {
+  const template = getTemplate(id);
+  const sizes = new Set();
+  LDR_ARRANGEMENTS.forEach((arrangement) => {
+    const plan = planFor(arrangement, template);
+    expect(plan.layout.id).toBe(arrangement.layoutId);
+    const geometry = computeLayout(template, 4 / 3, plan.layout);
+    expect(geometry.slots).toHaveLength(arrangement.slots.length);
+    sizes.add(`${geometry.W}x${geometry.H}`);
+  });
+  // Alternate/scrapbook share a layout; Duo, side-by-side and grid are distinct.
+  expect(sizes.size).toBe(4);
 });
 
 test('the scrapbook arrangement uses a real template', () => {

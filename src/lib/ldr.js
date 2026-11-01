@@ -101,15 +101,8 @@ export const LDR_ARRANGEMENTS = [
 ];
 export const getArrangement = (id) => LDR_ARRANGEMENTS.find((a) => a.id === id) || LDR_ARRANGEMENTS[0];
 
-/**
- * The layout and slot plan for an arrangement with a template. Templates designed
- * for their own layout (e.g. a 1 × 2 Halloween strip) keep it, alternating A/B.
- */
-export function planFor(arrangement, template) {
-  if (template?.layoutId && template.layoutId !== arrangement.layoutId) {
-    const layout = getLayout(template.layoutId);
-    return { layout, slots: pairs(layout.photoCount), rounds: Math.ceil(layout.photoCount / 2) };
-  }
+/** The selected arrangement controls the layout; templates supply the styling. */
+export function planFor(arrangement) {
   const layout = getLayout(arrangement.layoutId);
   return { layout, slots: arrangement.slots, rounds: Math.max(...arrangement.slots.map(([, r]) => r)) + 1 };
 }
