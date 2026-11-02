@@ -57,7 +57,7 @@ const readSession = () => {
 };
 
 export default function Booth() {
-  const { user } = useAuth();
+  const { user, ready: authReady } = useAuth();
   const { prefs, setPref } = usePrefs();
   const strips = useStrips();
   const toast = useToast();
@@ -192,14 +192,17 @@ export default function Booth() {
   );
 
   // Arriving from the gallery with ?template=… applies that template's layout too.
+  const queryLayoutApplied = useRef(false);
   useEffect(() => {
+    // Booth is public: wait until the saved account preferences replace guest defaults.
+    if (!authReady || queryLayoutApplied.current) return;
+    queryLayoutApplied.current = true;
     const fromQuery = query.get('template');
     if (fromQuery && fromQuery === templateId && template.layoutId && prefs.layout !== template.layoutId) {
       userLayoutRef.current = prefs.layout;
       setPref({ layout: template.layoutId });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authReady, query, templateId, template.layoutId, prefs.layout, setPref]);
   const aspect = (ASPECTS.find((a) => a.id === prefs.aspect) || ASPECTS[0]).value;
   const camera = useCamera(prefs.cameraId);
   const photosRef = useRef(photos);

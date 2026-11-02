@@ -12,7 +12,18 @@ import { TEMPLATES, getTemplate } from '../templates/data';
 import ghost from '../assets/halloween/ghost.webp';
 import pumpkin from '../assets/halloween/pumpkin.webp';
 
-const POPULAR_IDS = ['spooky-love', 'love-hearts', 'classic', 'vintage-film', 'trick-or-treat', 'magazine', 'pumpkin-night', 'boo-together', 'vampire-date'];
+const POPULAR_IDS = [
+  'black-cat-club',
+  'ghost-train',
+  'stitched-sweethearts',
+  'ghost-garden',
+  'candy-coven',
+  'midnight-masquerade',
+  'crystal-visions',
+  'haunted-arcade',
+  'haunted-seaside',
+  'potion-post',
+];
 
 function AutumnLeaf({ className = '' }) {
   return <svg className={`autumn-leaf ${className}`} viewBox="0 0 48 56" fill="none" aria-hidden="true"><path d="m24 2 5 13 8-5-1 12 10-1-7 12 6 4-17 7-4 10-2-11L5 39l6-6L2 23l12 1-2-13 9 5Z" fill="currentColor" /><path d="m24 12 1 33M13 26l12 10 11-11M14 37l11 4 10-6" stroke="var(--bg)" strokeOpacity=".4" strokeWidth="1.2" /></svg>;
@@ -99,13 +110,13 @@ export default function Landing() {
 
           <div className="hero-art" aria-hidden="true">
             <div className="hero-card hero-polaroid">
-              <TemplatePreview template={getTemplate('spooky-love')} scale={0.4} alt="" />
+              <TemplatePreview template={getTemplate('black-cat-club')} scale={0.4} alt="" />
             </div>
             <div className="hero-card hero-main">
-              <TemplatePreview template={getTemplate('vampire-date')} scale={0.5} alt="" />
+              <TemplatePreview template={getTemplate('ghost-train')} scale={0.5} alt="" />
             </div>
             <div className="hero-card hero-pink">
-              <TemplatePreview template={getTemplate('trick-or-treat')} scale={0.45} alt="" />
+              <TemplatePreview template={getTemplate('stitched-sweethearts')} scale={0.45} alt="" />
             </div>
             <span className="hero-good script">
               spooky

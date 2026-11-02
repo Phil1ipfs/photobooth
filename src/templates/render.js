@@ -14,6 +14,7 @@ import {
 import './drawExtra';
 import './drawHalloween';
 import { DEFAULT_LAYOUT_ID, getLayout } from './data';
+import { adaptArtworkLayout, computeArtworkLayout, drawArtwork } from './artwork';
 
 /** Width of a single-column strip; multi-column layouts grow from this. */
 export const STRIP_WIDTH = 600;
@@ -124,6 +125,7 @@ function filtered(img, filter) {
  * (left→right, top→bottom), matching the on-screen slot grid.
  */
 export function computeLayout(t, aspect = 4 / 3, layout = DEFAULT_LAYOUT) {
+  if (t.artwork && layout.id === DEFAULT_LAYOUT_ID) return computeArtworkLayout(t.artwork, STRIP_WIDTH);
   const { columns: cols, rows } = layout;
   const L = t.layout;
   const f = t.frame || {};
@@ -157,7 +159,8 @@ export function computeLayout(t, aspect = 4 / 3, layout = DEFAULT_LAYOUT) {
     h: rowSpan * cellH + (rowSpan - 1) * (rowPitch - cellH),
   }));
   const H = Math.round(top + rows * rowPitch - L.gap - inset + L.bottom);
-  return { W, H, slots, rowRects, baseW };
+  const geo = { W, H, slots, rowRects, baseW };
+  return t.artwork ? adaptArtworkLayout(t, geo) : geo;
 }
 
 /* ---------- Painting ---------- */
@@ -513,6 +516,7 @@ export async function createStripRenderer(template, options = {}) {
   const geo = computeLayout(template, aspect, layout);
   const { W, H, slots } = geo;
   const decor = template.decor || [];
+  const artwork = template.artwork ? await loadImage(scale <= 0.6 && template.artwork.previewSrc ? template.artwork.previewSrc : template.artwork.src) : null;
   return {
     width: Math.round(W * scale),
     height: Math.round(H * scale),
@@ -521,9 +525,11 @@ export async function createStripRenderer(template, options = {}) {
       ctx.save();
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       ctx.imageSmoothingQuality = 'high';
-      drawBackground(ctx, template, W, H);
+      if (geo.artworkNative) ctx.clearRect(0, 0, W, H);
+      else drawBackground(ctx, template, W, H);
       decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
       slots.forEach((r, i) => drawSlot(ctx, template, r, images[i] || null, i, { placeholders, filter }));
+      if (artwork) drawArtwork(ctx, artwork, template, geo);
       decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
       (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date, caption));
       ctx.restore();

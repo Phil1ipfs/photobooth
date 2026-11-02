@@ -34,7 +34,7 @@ export default function StripPreview({
     renderStrip(template, { photos, aspect, layout, filter, caption, scale: 0.6 })
       .then((canvas) => {
         if (!alive) return;
-        const u = canvas.toDataURL('image/jpeg', 0.9);
+        const u = canvas.toDataURL(template.artwork ? 'image/png' : 'image/jpeg', 0.9);
         setUrl(u);
         onRendered?.(u);
       })

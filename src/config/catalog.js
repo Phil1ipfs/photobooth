@@ -1,6 +1,6 @@
 // Which templates / layouts / filters are Premium. This is the single source of
 // truth for the UI; the database copy (public.premium_catalog — latest seed in
-// supabase/migrations/010_premium_feature_access.sql) enforces the same list
+// supabase/migrations/012_illustrated_halloween_templates.sql) enforces the same list
 // server-side, and a unit test (src/config/catalog.test.js) fails if they drift.
 
 // Free accounts can take and download classic still photos.
@@ -57,6 +57,17 @@ export const PREMIUM_TEMPLATE_IDS = [
   'witching-hour',
   'skeleton-couple',
   'blood-moon',
+  // Illustrated Halloween collection
+  'ghost-garden',
+  'black-cat-club',
+  'haunted-arcade',
+  'potion-post',
+  'candy-coven',
+  'midnight-masquerade',
+  'ghost-train',
+  'stitched-sweethearts',
+  'crystal-visions',
+  'haunted-seaside',
   // LDR
   'miles-apart',
 ];

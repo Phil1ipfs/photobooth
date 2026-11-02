@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import * as permissions from '../lib/entitlements';
 import { DEFAULT_PREFS } from '../context/PrefsContext';
 import Booth from './Booth';
@@ -9,6 +9,8 @@ import { downloadBlob, printBlob, shareBlob } from '../lib/share';
 
 let mockPlan = 'free';
 let mockReady = true;
+let mockAuthReady = true;
+let mockQuery = '';
 let mockInitialPrefs;
 const mockUpgrade = jest.fn();
 const mockSave = jest.fn();
@@ -30,7 +32,7 @@ jest.mock('../context/EntitlementsContext', () => ({ useEntitlements: () => {
     canUseFilter: (f) => rules.canUseFilter(entitlements, f),
   };
 } }));
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', name: 'Alex' } }) }));
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ ready: mockAuthReady, user: { id: 'u1', name: 'Alex' } }) }));
 jest.mock('../context/PrefsContext', () => ({
   ...jest.requireActual('../context/PrefsContext'),
   usePrefs: () => {
@@ -45,7 +47,7 @@ jest.mock('../context/ToastContext', () => {
 });
 jest.mock('../context/MusicContext', () => ({ useMusic: () => ({ track: { id: 'x' }, tracks: [], playing: false, subscribe: () => () => {} }) }));
 jest.mock('../lib/router', () => ({
-  useRouter: () => ({ query: new URLSearchParams(), navigate: jest.fn() }),
+  useRouter: () => ({ query: new URLSearchParams(mockQuery), navigate: jest.fn() }),
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
 }));
 jest.mock('../components/layout/AppLayout', () => ({
@@ -70,6 +72,8 @@ jest.mock('../lib/ldr', () => ({ ...jest.requireActual('../lib/ldr'), createRoom
 jest.mock('../lib/analytics', () => ({ track: () => {} }));
 
 beforeEach(() => {
+  mockAuthReady = true;
+  mockQuery = '';
   jest.clearAllMocks();
   mockPlan = 'free';
   mockReady = true;
@@ -99,6 +103,20 @@ test('Free can download a classic photo, while Live, Save, Share, Print and musi
   expect(printBlob).not.toHaveBeenCalled();
   expect(shareBlob).not.toHaveBeenCalled();
   expect(mockAuthorize).toHaveBeenCalledTimes(1); // locked actions don't consume a free strip
+});
+
+test('a template link waits for restored account settings and preserves later manual layout changes', async () => {
+  mockPlan = 'premium';
+  mockAuthReady = false;
+  mockQuery = 'template=black-cat-club';
+  mockInitialPrefs = { ...mockInitialPrefs, layout: 'grid-2x2' };
+  const { rerender } = render(<Booth />);
+  expect(screen.getByRole('combobox', { name: 'Photo layout' })).toHaveValue('grid-2x2');
+  mockAuthReady = true;
+  rerender(<Booth />);
+  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Photo layout' })).toHaveValue('strip-1x4'));
+  await act(async () => fireEvent.change(screen.getByRole('combobox', { name: 'Photo layout' }), { target: { value: 'grid-3x2' } }));
+  expect(screen.getByRole('combobox', { name: 'Photo layout' })).toHaveValue('grid-3x2');
 });
 
 test('saved Premium preferences cannot restore Live, premium templates, layouts, filters or HD on a Free account', async () => {

@@ -792,7 +792,7 @@ function ResultImage({ template, photos, layout, caption, filter }) {
   const [url, setUrl] = useState(null);
   useEffect(() => {
     let alive = true;
-    renderStrip(template, { photos, aspect: ASPECT, layout, caption, filter, scale: 0.6 }).then((c) => alive && setUrl(c.toDataURL('image/jpeg', 0.9)));
+    renderStrip(template, { photos, aspect: ASPECT, layout, caption, filter, scale: 0.6 }).then((c) => alive && setUrl(c.toDataURL(template.artwork ? 'image/png' : 'image/jpeg', 0.9)));
     return () => {
       alive = false;
     };

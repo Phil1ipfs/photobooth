@@ -1,0 +1,395 @@
+{
+  "generator": "Built-in imagegen; browser WebP export with alpha preserved",
+  "assets": [
+    {
+      "id": "black-cat-club",
+      "file": "black-cat-club.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 84,
+          "y": 157,
+          "w": 559,
+          "h": 354
+        },
+        {
+          "x": 84,
+          "y": 587,
+          "w": 559,
+          "h": 357
+        },
+        {
+          "x": 83,
+          "y": 1022,
+          "w": 560,
+          "h": 358
+        },
+        {
+          "x": 83,
+          "y": 1456,
+          "w": 560,
+          "h": 349
+        }
+      ],
+      "bytes": 479058,
+      "preview": {
+        "file": "black-cat-club-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 111738
+      }
+    },
+    {
+      "id": "candy-coven",
+      "file": "candy-coven.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 82,
+          "y": 147,
+          "w": 561,
+          "h": 376
+        },
+        {
+          "x": 82,
+          "y": 592,
+          "w": 561,
+          "h": 373
+        },
+        {
+          "x": 83,
+          "y": 1037,
+          "w": 559,
+          "h": 372
+        },
+        {
+          "x": 82,
+          "y": 1481,
+          "w": 560,
+          "h": 355
+        }
+      ],
+      "bytes": 302120,
+      "preview": {
+        "file": "candy-coven-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 83558
+      }
+    },
+    {
+      "id": "crystal-visions",
+      "file": "crystal-visions.webp",
+      "width": 722,
+      "height": 2178,
+      "windows": [
+        {
+          "x": 74,
+          "y": 145,
+          "w": 575,
+          "h": 348
+        },
+        {
+          "x": 74,
+          "y": 570,
+          "w": 575,
+          "h": 349
+        },
+        {
+          "x": 74,
+          "y": 995,
+          "w": 575,
+          "h": 346
+        },
+        {
+          "x": 75,
+          "y": 1417,
+          "w": 574,
+          "h": 344
+        }
+      ],
+      "bytes": 407454,
+      "preview": {
+        "file": "crystal-visions-preview.webp",
+        "width": 360,
+        "height": 1086,
+        "bytes": 85494
+      }
+    },
+    {
+      "id": "ghost-garden",
+      "file": "ghost-garden.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 95,
+          "y": 124,
+          "w": 534,
+          "h": 341
+        },
+        {
+          "x": 96,
+          "y": 524,
+          "w": 533,
+          "h": 346
+        },
+        {
+          "x": 96,
+          "y": 931,
+          "w": 533,
+          "h": 341
+        },
+        {
+          "x": 96,
+          "y": 1334,
+          "w": 533,
+          "h": 340
+        }
+      ],
+      "bytes": 496006,
+      "preview": {
+        "file": "ghost-garden-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 119398
+      }
+    },
+    {
+      "id": "ghost-train",
+      "file": "ghost-train.webp",
+      "width": 725,
+      "height": 2167,
+      "windows": [
+        {
+          "x": 87,
+          "y": 130,
+          "w": 553,
+          "h": 342
+        },
+        {
+          "x": 87,
+          "y": 563,
+          "w": 553,
+          "h": 342
+        },
+        {
+          "x": 87,
+          "y": 996,
+          "w": 553,
+          "h": 342
+        },
+        {
+          "x": 87,
+          "y": 1429,
+          "w": 553,
+          "h": 293
+        }
+      ],
+      "bytes": 606136,
+      "preview": {
+        "file": "ghost-train-preview.webp",
+        "width": 360,
+        "height": 1076,
+        "bytes": 134518
+      }
+    },
+    {
+      "id": "haunted-arcade",
+      "file": "haunted-arcade.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 101,
+          "y": 144,
+          "w": 522,
+          "h": 354
+        },
+        {
+          "x": 101,
+          "y": 582,
+          "w": 522,
+          "h": 352
+        },
+        {
+          "x": 101,
+          "y": 1017,
+          "w": 522,
+          "h": 352
+        },
+        {
+          "x": 101,
+          "y": 1451,
+          "w": 522,
+          "h": 351
+        }
+      ],
+      "bytes": 299162,
+      "preview": {
+        "file": "haunted-arcade-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 79234
+      }
+    },
+    {
+      "id": "haunted-seaside",
+      "file": "haunted-seaside.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 98,
+          "y": 165,
+          "w": 529,
+          "h": 328
+        },
+        {
+          "x": 98,
+          "y": 567,
+          "w": 529,
+          "h": 330
+        },
+        {
+          "x": 98,
+          "y": 972,
+          "w": 529,
+          "h": 329
+        },
+        {
+          "x": 98,
+          "y": 1375,
+          "w": 529,
+          "h": 330
+        }
+      ],
+      "bytes": 541062,
+      "preview": {
+        "file": "haunted-seaside-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 116246
+      }
+    },
+    {
+      "id": "midnight-masquerade",
+      "file": "midnight-masquerade.webp",
+      "width": 725,
+      "height": 2167,
+      "windows": [
+        {
+          "x": 76,
+          "y": 144,
+          "w": 573,
+          "h": 364
+        },
+        {
+          "x": 76,
+          "y": 572,
+          "w": 573,
+          "h": 363
+        },
+        {
+          "x": 77,
+          "y": 998,
+          "w": 572,
+          "h": 365
+        },
+        {
+          "x": 77,
+          "y": 1426,
+          "w": 572,
+          "h": 362
+        }
+      ],
+      "bytes": 466658,
+      "preview": {
+        "file": "midnight-masquerade-preview.webp",
+        "width": 360,
+        "height": 1076,
+        "bytes": 93870
+      }
+    },
+    {
+      "id": "potion-post",
+      "file": "potion-post.webp",
+      "width": 726,
+      "height": 2167,
+      "windows": [
+        {
+          "x": 84,
+          "y": 127,
+          "w": 559,
+          "h": 357
+        },
+        {
+          "x": 84,
+          "y": 562,
+          "w": 558,
+          "h": 357
+        },
+        {
+          "x": 84,
+          "y": 997,
+          "w": 559,
+          "h": 358
+        },
+        {
+          "x": 84,
+          "y": 1434,
+          "w": 558,
+          "h": 357
+        }
+      ],
+      "bytes": 487412,
+      "preview": {
+        "file": "potion-post-preview.webp",
+        "width": 360,
+        "height": 1075,
+        "bytes": 107818
+      }
+    },
+    {
+      "id": "stitched-sweethearts",
+      "file": "stitched-sweethearts.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 59,
+          "y": 137,
+          "w": 609,
+          "h": 320
+        },
+        {
+          "x": 59,
+          "y": 563,
+          "w": 609,
+          "h": 319
+        },
+        {
+          "x": 59,
+          "y": 993,
+          "w": 609,
+          "h": 314
+        },
+        {
+          "x": 59,
+          "y": 1412,
+          "w": 609,
+          "h": 311
+        }
+      ],
+      "bytes": 542306,
+      "preview": {
+        "file": "stitched-sweethearts-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 108148
+      }
+    }
+  ]
+}
