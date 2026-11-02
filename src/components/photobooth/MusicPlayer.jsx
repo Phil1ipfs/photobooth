@@ -71,10 +71,11 @@ function Browse({ onPlayed }) {
         setStatus('loading');
         try {
           const list = await searchTracks({ query, category: query.trim() ? null : category, signal: ctrl.signal });
+          if (ctrl.signal.aborted) return;
           setResults(list);
           setStatus('done');
         } catch (err) {
-          if (err.name === 'AbortError') return;
+          if (ctrl.signal.aborted || err.name === 'AbortError') return;
           setError(err.message);
           setStatus('error');
         }
@@ -274,12 +275,18 @@ export default function MusicPlayer({ compact = false, shared = false }) {
               </div>
               {m.needsTap && (
                 <button type="button" className="music-tap" onClick={m.resume}>
-                  <Icon name="play" size={14} /> Tap to listen together
+                  <Icon name="play" size={14} /> {shared ? 'Tap to listen together' : 'Tap to play music'}
                 </button>
               )}
+              {m.error && (
+                <p className="music-note" role="status">
+                  {m.error}{' '}
+                  <button type="button" className="link-btn" onClick={m.resume}>Try again</button>
+                </p>
+              )}
               <div className="music-controls">
-                <button className="music-play" onClick={m.toggle} aria-label={m.playing ? 'Pause music' : 'Play music'}>
-                  {m.loading && m.playing ? (
+                <button className="music-play" onClick={m.toggle} aria-label={m.playing || m.loading ? 'Pause music' : 'Play music'}>
+                  {m.loading ? (
                     <span className="btn-spinner" />
                   ) : (
                     <Icon name={m.playing ? 'pause' : 'play'} size={16} />

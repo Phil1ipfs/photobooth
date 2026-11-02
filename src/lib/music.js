@@ -8,7 +8,11 @@
 // not, so music is never mixed into downloads.
 
 const API = 'https://api.audius.co/v1';
+const FALLBACK_API = 'https://discoveryprovider.audius.co/v1';
 const APP_NAME = 'PhotoBooth';
+const SEARCH_TIMEOUT = 8000;
+const CACHE_TTL = 5 * 60 * 1000;
+const searchCache = new Map();
 
 /** Mood / genre shelves. `genre` and `mood` are Audius's own filter values. */
 export const MUSIC_CATEGORIES = [
@@ -36,11 +40,11 @@ export const THEME_SUGGESTIONS = {
   ambient: { templateId: 'galaxy-dreams', label: 'Dreamy & calm' },
 };
 
-export const streamUrl = (id) => `${API}/tracks/${encodeURIComponent(id)}/stream?app_name=${APP_NAME}`;
+export const streamUrl = (id, fallback = false) => `${fallback ? FALLBACK_API : API}/tracks/${encodeURIComponent(id)}/stream?app_name=${APP_NAME}`;
 
 /** Audius API track → player track. Returns null for anything we can't legally/technically play. */
 export function normalizeTrack(t) {
-  if (!t || !t.id || t.is_streamable === false || t.is_stream_gated || t.is_delete || t.is_unlisted) return null;
+  if (!t || !t.id || t.is_streamable === false || t.is_stream_gated || t.is_delete || t.is_unlisted || t.access?.stream === false) return null;
   if (!/^[A-Za-z0-9]+$/.test(String(t.id))) return null;
   return {
     id: `audius:${t.id}`,
@@ -58,16 +62,32 @@ export function normalizeTrack(t) {
 
 async function get(path, params, signal) {
   const qs = new URLSearchParams({ ...params, app_name: APP_NAME });
+  const key = `${path}?${qs}`;
+  if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
+  const cached = searchCache.get(key);
+  if (cached && Date.now() - cached.at < CACHE_TTL) return cached.tracks;
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController();
+    const abort = () => ctrl.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    const timer = setTimeout(abort, SEARCH_TIMEOUT);
     try {
-      const res = await fetch(`${API}${path}?${qs}`, { signal });
+      const res = await fetch(`${attempt ? FALLBACK_API : API}${key}`, { signal: ctrl.signal });
       if (!res.ok) throw new Error(`Music service error (${res.status})`);
       const json = await res.json();
-      return (json.data || []).map(normalizeTrack).filter(Boolean);
+      if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
+      const tracks = (json.data || []).map(normalizeTrack).filter(Boolean);
+      searchCache.delete(key);
+      searchCache.set(key, { at: Date.now(), tracks });
+      if (searchCache.size > 30) searchCache.delete(searchCache.keys().next().value);
+      return tracks;
     } catch (err) {
-      if (err.name === 'AbortError') throw err;
+      if (signal?.aborted) throw err;
       lastErr = err;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
     }
   }
   throw new Error(lastErr?.message?.startsWith('Music') ? lastErr.message : 'Couldn’t reach the music service. Check your connection and try again.');
