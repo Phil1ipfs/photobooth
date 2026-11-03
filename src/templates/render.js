@@ -517,6 +517,7 @@ export async function createStripRenderer(template, options = {}) {
   const { W, H, slots } = geo;
   const decor = template.decor || [];
   const artwork = template.artwork ? await loadImage(scale <= 0.6 && template.artwork.previewSrc ? template.artwork.previewSrc : template.artwork.src) : null;
+  const photosOnTop = geo.artworkNative && template.artwork.photosOnTop;
   return {
     width: Math.round(W * scale),
     height: Math.round(H * scale),
@@ -528,8 +529,11 @@ export async function createStripRenderer(template, options = {}) {
       if (geo.artworkNative) ctx.clearRect(0, 0, W, H);
       else drawBackground(ctx, template, W, H);
       decor.filter((d) => d.layer === 'back').forEach((d) => drawDecor(ctx, d, geo));
+      // Some illustrated assets contain a pale photo matte. Paint real photos
+      // over those measured openings so the matte cannot wash out the image.
+      if (artwork && photosOnTop) drawArtwork(ctx, artwork, template, geo);
       slots.forEach((r, i) => drawSlot(ctx, template, r, images[i] || null, i, { placeholders, filter }));
-      if (artwork) drawArtwork(ctx, artwork, template, geo);
+      if (artwork && !photosOnTop) drawArtwork(ctx, artwork, template, geo);
       decor.filter((d) => d.layer !== 'back').forEach((d) => drawDecor(ctx, d, geo));
       (template.texts || []).forEach((t) => drawText(ctx, t, resolvePos(t, geo), date, caption));
       ctx.restore();

@@ -1,0 +1,415 @@
+{
+  "generator": "Built-in imagegen; browser WebP export preserving original pixels and alpha",
+  "assets": [
+    {
+      "id": "theater-of-us",
+      "file": "theater-of-us.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 42,
+          "y": 295,
+          "w": 640,
+          "h": 369
+        },
+        {
+          "x": 42,
+          "y": 695,
+          "w": 640,
+          "h": 363
+        },
+        {
+          "x": 42,
+          "y": 1090,
+          "w": 640,
+          "h": 362
+        },
+        {
+          "x": 42,
+          "y": 1484,
+          "w": 640,
+          "h": 364
+        }
+      ],
+      "photosOnTop": true,
+      "maxInteriorAlpha": 6.409,
+      "bytes": 597116,
+      "preview": {
+        "file": "theater-of-us-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 205012
+      }
+    },
+    {
+      "id": "sealed-with-love",
+      "file": "sealed-with-love.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 47,
+          "y": 147,
+          "w": 631,
+          "h": 390
+        },
+        {
+          "x": 47,
+          "y": 613,
+          "w": 631,
+          "h": 356
+        },
+        {
+          "x": 47,
+          "y": 1044,
+          "w": 631,
+          "h": 356
+        },
+        {
+          "x": 47,
+          "y": 1476,
+          "w": 631,
+          "h": 358
+        }
+      ],
+      "photosOnTop": true,
+      "maxInteriorAlpha": 6.961,
+      "bytes": 698934,
+      "preview": {
+        "file": "sealed-with-love-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 140182
+      }
+    },
+    {
+      "id": "cherry-kisses",
+      "file": "cherry-kisses.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 52,
+          "y": 145,
+          "w": 620,
+          "h": 381
+        },
+        {
+          "x": 53,
+          "y": 607,
+          "w": 619,
+          "h": 378
+        },
+        {
+          "x": 53,
+          "y": 1070,
+          "w": 619,
+          "h": 357
+        },
+        {
+          "x": 53,
+          "y": 1504,
+          "w": 619,
+          "h": 346
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.156,
+      "bytes": 311020,
+      "preview": {
+        "file": "cherry-kisses-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 80360
+      }
+    },
+    {
+      "id": "swan-serenade",
+      "file": "swan-serenade.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 66,
+          "y": 152,
+          "w": 592,
+          "h": 381
+        },
+        {
+          "x": 66,
+          "y": 576,
+          "w": 592,
+          "h": 354
+        },
+        {
+          "x": 66,
+          "y": 972,
+          "w": 592,
+          "h": 359
+        },
+        {
+          "x": 66,
+          "y": 1373,
+          "w": 591,
+          "h": 361
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.003,
+      "bytes": 343208,
+      "preview": {
+        "file": "swan-serenade-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 80004
+      }
+    },
+    {
+      "id": "cupid-social-club",
+      "file": "cupid-social-club.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 53,
+          "y": 137,
+          "w": 618,
+          "h": 373
+        },
+        {
+          "x": 53,
+          "y": 582,
+          "w": 618,
+          "h": 373
+        },
+        {
+          "x": 53,
+          "y": 1028,
+          "w": 618,
+          "h": 372
+        },
+        {
+          "x": 53,
+          "y": 1472,
+          "w": 618,
+          "h": 340
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.025,
+      "bytes": 260084,
+      "preview": {
+        "file": "cupid-social-club-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 59346
+      }
+    },
+    {
+      "id": "moonlit-promise",
+      "file": "moonlit-promise.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 67,
+          "y": 168,
+          "w": 590,
+          "h": 357
+        },
+        {
+          "x": 67,
+          "y": 582,
+          "w": 590,
+          "h": 326
+        },
+        {
+          "x": 67,
+          "y": 966,
+          "w": 590,
+          "h": 329
+        },
+        {
+          "x": 67,
+          "y": 1353,
+          "w": 590,
+          "h": 327
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.023,
+      "bytes": 354334,
+      "preview": {
+        "file": "moonlit-promise-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 64466
+      }
+    },
+    {
+      "id": "ribbon-vows",
+      "file": "ribbon-vows.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 54,
+          "y": 99,
+          "w": 615,
+          "h": 391
+        },
+        {
+          "x": 54,
+          "y": 537,
+          "w": 615,
+          "h": 391
+        },
+        {
+          "x": 54,
+          "y": 976,
+          "w": 615,
+          "h": 391
+        },
+        {
+          "x": 54,
+          "y": 1416,
+          "w": 615,
+          "h": 391
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.002,
+      "bytes": 350422,
+      "preview": {
+        "file": "ribbon-vows-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 81014
+      }
+    },
+    {
+      "id": "rose-garden-date",
+      "file": "rose-garden-date.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 65,
+          "y": 114,
+          "w": 594,
+          "h": 359
+        },
+        {
+          "x": 65,
+          "y": 512,
+          "w": 594,
+          "h": 356
+        },
+        {
+          "x": 65,
+          "y": 907,
+          "w": 594,
+          "h": 357
+        },
+        {
+          "x": 65,
+          "y": 1302,
+          "w": 594,
+          "h": 359
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.001,
+      "bytes": 336986,
+      "preview": {
+        "file": "rose-garden-date-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 80936
+      }
+    },
+    {
+      "id": "mixtape-for-two",
+      "file": "mixtape-for-two.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 57,
+          "y": 109,
+          "w": 610,
+          "h": 359
+        },
+        {
+          "x": 57,
+          "y": 551,
+          "w": 610,
+          "h": 361
+        },
+        {
+          "x": 57,
+          "y": 995,
+          "w": 610,
+          "h": 341
+        },
+        {
+          "x": 57,
+          "y": 1418,
+          "w": 610,
+          "h": 337
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.003,
+      "bytes": 210446,
+      "preview": {
+        "file": "mixtape-for-two-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 49832
+      }
+    },
+    {
+      "id": "love-airmail",
+      "file": "love-airmail.webp",
+      "width": 724,
+      "height": 2172,
+      "windows": [
+        {
+          "x": 41,
+          "y": 149,
+          "w": 642,
+          "h": 406
+        },
+        {
+          "x": 41,
+          "y": 626,
+          "w": 642,
+          "h": 371
+        },
+        {
+          "x": 41,
+          "y": 1067,
+          "w": 642,
+          "h": 344
+        },
+        {
+          "x": 41,
+          "y": 1482,
+          "w": 642,
+          "h": 354
+        }
+      ],
+      "photosOnTop": false,
+      "maxInteriorAlpha": 0.001,
+      "bytes": 214170,
+      "preview": {
+        "file": "love-airmail-preview.webp",
+        "width": 360,
+        "height": 1080,
+        "bytes": 55386
+      }
+    }
+  ]
+}

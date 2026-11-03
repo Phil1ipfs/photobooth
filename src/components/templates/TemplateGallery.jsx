@@ -33,7 +33,7 @@ export default function TemplateGallery({ query = '', category, onCategory, favo
       (t) =>
         (category === 'all' || t.categories.includes(category)) &&
         (!q || t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || t.categories.some((c) => c.includes(q)))
-    );
+    ).sort((a, b) => Number(!!b.featuredCategories?.includes(category)) - Number(!!a.featuredCategories?.includes(category)));
   }, [query, category, only]);
 
   useEffect(() => setPage(1), [query, category]);

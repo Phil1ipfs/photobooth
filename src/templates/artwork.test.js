@@ -1,8 +1,11 @@
 import { ILLUSTRATED_HALLOWEEN_TEMPLATES } from './halloweenIllustrated';
+import { ILLUSTRATED_LOVE_TEMPLATES } from './loveIllustrated';
 import { LAYOUTS, getLayout, getTemplate, TEMPLATES } from './data';
-import { computeLayout } from './render';
+import { computeLayout, createStripRenderer } from './render';
 import { drawArtwork } from './artwork';
 import { templateTier } from '../config/catalog';
+
+const ARTWORK_TEMPLATES = [...ILLUSTRATED_HALLOWEEN_TEMPLATES, ...ILLUSTRATED_LOVE_TEMPLATES];
 
 test('all ten illustrated designs are discoverable Halloween Premium templates', () => {
   expect(ILLUSTRATED_HALLOWEEN_TEMPLATES).toHaveLength(10);
@@ -15,7 +18,18 @@ test('all ten illustrated designs are discoverable Halloween Premium templates',
   });
 });
 
-test.each(ILLUSTRATED_HALLOWEEN_TEMPLATES.map((t) => [t.id, t]))('%s positions four photos at the actual artwork openings', (id, template) => {
+test('all ten new Love designs are registered, Premium, and featured in Love', () => {
+  expect(ILLUSTRATED_LOVE_TEMPLATES).toHaveLength(10);
+  ILLUSTRATED_LOVE_TEMPLATES.forEach((t) => {
+    expect(getTemplate(t.id)).toBe(t);
+    expect(templateTier(t)).toBe('premium');
+    expect(t.categories).toContain('love');
+    expect(t.featuredCategories).toContain('love');
+  });
+  expect(getTemplate('theater-of-us').name).toBe('Theater of Us');
+});
+
+test.each(ARTWORK_TEMPLATES.map((t) => [t.id, t]))('%s positions four photos at the actual artwork openings', (id, template) => {
   const geo = computeLayout(template);
   expect(geo.artworkNative).toBe(true);
   expect(geo.W).toBe(600);
@@ -35,7 +49,7 @@ test.each(ILLUSTRATED_HALLOWEEN_TEMPLATES.map((t) => [t.id, t]))('%s positions f
 });
 
 test.each(LAYOUTS.map((l) => [l.id, l]))('illustrated frames also render the selected %s arrangement', (id, layout) => {
-  ILLUSTRATED_HALLOWEEN_TEMPLATES.forEach((template) => {
+  ARTWORK_TEMPLATES.forEach((template) => {
     const geo = computeLayout(template, 4 / 3, layout);
     expect(geo.slots).toHaveLength(layout.photoCount);
     geo.slots.forEach((r) => {
@@ -73,6 +87,28 @@ test.each(LAYOUTS.map((l) => [l.id, l]))('illustrated frames also render the sel
       }
     });
   });
+});
+
+test('photo mattes cannot obscure captured photos, while transparent frames still overlay them', async () => {
+  let image;
+  const mock = jest.spyOn(window, 'Image').mockImplementation(() => {
+    image = { width: 724, height: 2172, naturalWidth: 724, naturalHeight: 2172,
+      set src(value) { Promise.resolve().then(() => this.onload()); },
+    };
+    return image;
+  });
+  try {
+    for (const photosOnTop of [true, false]) {
+      const base = getTemplate('theater-of-us');
+      const renderer = await createStripRenderer({ ...base, artwork: { ...base.artwork, photosOnTop } }, { filter: 'none' });
+      const calls = [];
+      const ctx = new Proxy({}, { get: (target, key) => target[key] ?? ((...args) => calls.push({ key, args })) });
+      const photos = Array.from({ length: 4 }, (_, id) => ({ id, width: 320, height: 240 }));
+      renderer.draw(ctx, photos);
+      const painted = calls.filter((c) => c.key === 'drawImage').map((c) => c.args[0]);
+      expect(painted).toEqual(photosOnTop ? [image, ...photos] : [...photos, image]);
+    }
+  } finally { mock.mockRestore(); }
 });
 
 test('the original Classic and old Halloween layouts retain their existing geometry', () => {

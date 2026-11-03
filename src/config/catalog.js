@@ -1,6 +1,6 @@
 // Which templates / layouts / filters are Premium. This is the single source of
 // truth for the UI; the database copy (public.premium_catalog — latest seed in
-// supabase/migrations/012_illustrated_halloween_templates.sql) enforces the same list
+// supabase/migrations/013_illustrated_love_templates.sql) enforces the same list
 // server-side, and a unit test (src/config/catalog.test.js) fails if they drift.
 
 // Free accounts can take and download classic still photos.
@@ -68,6 +68,17 @@ export const PREMIUM_TEMPLATE_IDS = [
   'stitched-sweethearts',
   'crystal-visions',
   'haunted-seaside',
+  // Illustrated Love collection
+  'theater-of-us',
+  'sealed-with-love',
+  'cherry-kisses',
+  'swan-serenade',
+  'cupid-social-club',
+  'moonlit-promise',
+  'ribbon-vows',
+  'rose-garden-date',
+  'mixtape-for-two',
+  'love-airmail',
   // LDR
   'miles-apart',
 ];
