@@ -1,12 +1,13 @@
-// Photostrip creation allowance (Free: 2 strips, lifetime — Premium/admin: unlimited).
+// Free: 2 photos + 2 Live Strips per free design, lifetime. Premium/admin: unlimited.
 //
-// The database is the authority (supabase/migrations/005_strip_creation_limit.sql):
+// The database is the authority (supabase/migrations/014_free_template_allowances.sql):
 //   claim_strip_creation    — atomically reserves a creation, or refuses at the limit
 //   finalize_strip_creation — locks a creation to the composition on first export
 //   strips insert trigger   — a saved strip must reference a finalized creation
 // This module only sequences those calls for the booth. Nothing here is trusted:
 // tampering with it (or with sessionStorage) can't produce an extra creation.
 import { isSupabaseConfigured, supabase } from './supabase';
+import { stripMediaType } from './stripUsage';
 
 /** Supabase RPC calls (injectable for tests). */
 export const stripApi = {
@@ -16,16 +17,19 @@ export const stripApi = {
     return data;
   },
   async claim(meta) {
-    const { data, error } = await supabase.rpc('claim_strip_creation', { p_template: meta?.template || null, p_layout: meta?.layout || null });
+    const { data, error } = await supabase.rpc('claim_strip_creation_for_mode', {
+      p_template: meta?.template || null, p_layout: meta?.layout || null, p_media_type: stripMediaType(meta?.mediaType),
+    });
     if (error) throw new Error(error.message || 'Could not start a new strip.');
     return data;
   },
   async finalize(id, signature, meta) {
-    const { data, error } = await supabase.rpc('finalize_strip_creation', {
+    const { data, error } = await supabase.rpc('finalize_strip_creation_for_mode', {
       p_id: id,
       p_signature: signature,
       p_template: meta?.template || null,
       p_layout: meta?.layout || null,
+      p_media_type: stripMediaType(meta?.mediaType),
     });
     if (error) throw new Error(error.message || 'Could not verify this strip.');
     return data;
@@ -63,31 +67,42 @@ export function compositionSignature({ photos, templateId, layoutId, filter, asp
  * Every operation is queued, so rapid clicks share one server call.
  */
 export function createStripGate({ api = stripApi, initial = null, onChange = () => {}, onUsage = () => {} } = {}) {
-  let state = { id: initial?.id || null, signature: initial?.signature || null };
+  const scopeOf = (meta) => ({ template: meta?.template || 'classic', mediaType: stripMediaType(meta?.mediaType) });
+  const keyOf = (meta) => `${meta.template}|${meta.mediaType}`;
+  const scopes = { ...initial?.scopes };
+  let state = { id: initial?.id || null, signature: initial?.signature || null, ...scopeOf(initial) };
+  if (state.id) scopes[keyOf(state)] = { ...state };
   let queue = Promise.resolve();
 
+  const snapshot = () => ({ ...state, scopes: Object.fromEntries(Object.entries(scopes).map(([key, value]) => [key, { ...value }])) });
   const set = (next) => {
     state = next;
-    onChange({ ...state });
+    if (state.id) scopes[keyOf(state)] = { ...state };
+    else delete scopes[keyOf(state)];
+    onChange(snapshot());
+  };
+  const select = (meta) => {
+    const scope = scopeOf(meta);
+    if (keyOf(state) !== keyOf(scope)) set(scopes[keyOf(scope)] || { ...scope, id: null, signature: null });
   };
   const run = (fn) => {
     const p = queue.then(fn, fn);
     queue = p.catch(() => {});
     return p;
   };
-  const usageOf = (r) => ({ used: r.used, limit: r.limit, unlimited: !!r.unlimited });
+  const usageOf = (r) => ({ used: r.used, limit: r.limit, unlimited: !!r.unlimited, ...(r.templates ? { templates: r.templates } : {}) });
 
   async function claim(meta) {
     const r = await api.claim(meta);
     if (r && typeof r.used === 'number') onUsage(usageOf(r));
     if (!r?.allowed) return { allowed: false, reason: r?.reason || 'strip_limit_reached' };
-    set({ id: r.id, signature: null });
+    set({ ...scopeOf(meta), id: r.id, signature: null });
     return { allowed: true, created: true };
   }
 
   return {
     get state() {
-      return { ...state };
+      return snapshot();
     },
     /** True while a creation is reserved for the strip in progress. */
     get active() {
@@ -98,13 +113,17 @@ export function createStripGate({ api = stripApi, initial = null, onChange = () 
      * A new strip is starting. An unexported (draft) creation is reused — clearing
      * photos before exporting never costs an extra strip.
      */
-    beginStrip() {
-      if (state.id && state.signature) set({ id: null, signature: null });
+    beginStrip(meta) {
+      if (meta) select(meta);
+      if (state.id && state.signature) set({ ...state, id: null, signature: null });
     },
 
     /** Make sure a creation is reserved before taking photos for a strip. */
     ensureCreation(meta) {
-      return run(async () => (state.id ? { allowed: true, created: false } : claim(meta)));
+      return run(async () => {
+        select(meta);
+        return state.id ? { allowed: true, created: false } : claim(meta);
+      });
     },
 
     /**
@@ -114,10 +133,11 @@ export function createStripGate({ api = stripApi, initial = null, onChange = () 
      */
     authorizeExport(signature, meta) {
       return run(async () => {
+        select(meta);
         if (state.id && state.signature === signature) return { allowed: true, created: false };
         // An unexported (draft) creation is locked to this composition on first export.
         if (state.id && !state.signature && (await api.finalize(state.id, signature, meta))?.allowed) {
-          set({ id: state.id, signature });
+          set({ ...state, signature });
           return { allowed: true, created: false };
         }
         // No creation yet, one already locked to a DIFFERENT composition, or an unknown id:
@@ -126,14 +146,14 @@ export function createStripGate({ api = stripApi, initial = null, onChange = () 
         // for another design, even where the plan is unlimited.) If that's refused, keep
         // the current one (it can still be re-exported).
         const previous = state;
-        set({ id: null, signature: null });
+        set({ ...scopeOf(meta), id: null, signature: null });
         const c = await claim(meta);
         if (!c.allowed) {
           set(previous);
           return c;
         }
         if ((await api.finalize(state.id, signature, meta))?.allowed) {
-          set({ id: state.id, signature });
+          set({ ...state, signature });
           return { allowed: true, created: true };
         }
         set(previous);
@@ -143,7 +163,8 @@ export function createStripGate({ api = stripApi, initial = null, onChange = () 
 
     /** Forget the creation (e.g. signed out). */
     reset() {
-      set({ id: null, signature: null });
+      Object.keys(scopes).forEach((key) => delete scopes[key]);
+      set({ ...scopeOf(), id: null, signature: null });
     },
   };
 }

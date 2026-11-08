@@ -181,6 +181,7 @@ function BillingSection() {
         {!isPremium && stripUsage && !stripUsage.unlimited && (
           <p className="billing-detail">
             Free photostrips: <strong>{Math.min(stripUsage.used, stripUsage.limit)} / {stripUsage.limit} used</strong>
+            {' '}· Two photo strips and two Live Strips per free design, per account. Usage does not expire.
           </p>
         )}
         {entitlements.status && (

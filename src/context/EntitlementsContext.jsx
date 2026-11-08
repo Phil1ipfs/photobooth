@@ -32,7 +32,7 @@ export function EntitlementsProvider({ children }) {
   // An account switch must never expose the previous account's paid features.
   const current = ready ? entitlements : ent.FREE_ENTITLEMENTS;
   const [upgrade, setUpgrade] = useState(null); // { feature, title, description } | null
-  // Free photostrip allowance from the database: { used, limit, unlimited } | null (unknown / signed out).
+  // Aggregate and per-design/type usage from the database; null while unknown/signed out.
   const [stripUsage, setStripUsage] = useState(null);
 
   const refresh = useCallback(async () => {

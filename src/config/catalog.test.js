@@ -2,7 +2,7 @@
 // and checks every Premium id refers to a real template / layout.
 import fs from 'fs';
 import path from 'path';
-import { FREE_TEMPLATE_IDS, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES, FREE_STRIP_LIMIT } from './catalog';
+import { FREE_TEMPLATE_IDS, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS, FILTERS, FEATURES, FREE_STRIP_LIMIT, FREE_STRIPS_PER_MODE } from './catalog';
 import { DEFAULT_TEMPLATE_ID, LAYOUTS, TEMPLATES } from '../templates/data';
 import { canUseFeature, canUseLayout, canUseTemplate, canUseFilter, isPremium, isAdmin } from '../lib/entitlements';
 
@@ -66,9 +66,13 @@ test('entitlements: free vs premium vs admin', () => {
 });
 
 test('free photostrip limit matches the database', () => {
-  const migration = fs.readFileSync(path.join(__dirname, '../../supabase/migrations/005_strip_creation_limit.sql'), 'utf8');
-  expect(Number(migration.match(/free_limit constant int := (\d+);/)[1])).toBe(FREE_STRIP_LIMIT);
-  expect(Number(migration.match(/'limit', (\d+),/)[1])).toBe(FREE_STRIP_LIMIT);
+  const migration = fs.readFileSync(path.join(migrationsDir, '014_free_template_allowances.sql'), 'utf8');
+  const ids = migration.match(/select array\[([^\]]+)\]::text\[\]/)[1].match(/[a-z][a-z-]*/g);
+  expect(ids).toEqual(FREE_TEMPLATE_IDS);
+  expect(FREE_TEMPLATE_IDS).toHaveLength(5);
+  expect(Number(migration.match(/as \$\$ select (\d+); \$\$/)[1])).toBe(FREE_STRIPS_PER_MODE);
+  expect(FREE_STRIP_LIMIT).toBe(20);
+  expect(canUseFeature({ plan: 'free' }, 'live_strips')).toBe(true);
   expect(canUseFeature({ plan: 'free' }, 'unlimited_strips')).toBe(false);
   expect(canUseFeature({ plan: 'premium' }, 'unlimited_strips')).toBe(true);
   expect(canUseFeature({ plan: 'admin' }, 'unlimited_strips')).toBe(true);

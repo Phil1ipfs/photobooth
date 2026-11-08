@@ -40,7 +40,7 @@ begin
   result := public.finalize_strip_creation(free_creation, 'v1:classic-free-photo', 'classic', 'strip-1x4');
   insert into premium_access_results values ('Free: same classic photo can be downloaded again', (result->>'allowed')::boolean, result::text);
   blocked := false;
-  begin perform public.claim_strip_creation('love-hearts', 'strip-1x4');
+  begin perform public.claim_strip_creation('magazine', 'strip-1x4');
   exception when insufficient_privilege then blocked := sqlerrm = 'premium_required'; end;
   insert into premium_access_results values ('Free: other templates blocked through RPC', blocked, null);
   blocked := false;
@@ -48,7 +48,7 @@ begin
   exception when insufficient_privilege then blocked := sqlerrm = 'premium_required'; end;
   insert into premium_access_results values ('Free: advanced layouts blocked through RPC', blocked, null);
   blocked := false;
-  begin perform public.finalize_strip_creation(free_creation, 'v1:changed-paid-look', 'polaroid', 'strip-1x4');
+  begin perform public.finalize_strip_creation(free_creation, 'v1:changed-paid-look', 'magazine', 'strip-1x4');
   exception when insufficient_privilege then blocked := sqlerrm = 'premium_required'; end;
   insert into premium_access_results values ('Free: finalizing a paid template blocked', blocked, null);
   blocked := false;

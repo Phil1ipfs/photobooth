@@ -95,7 +95,7 @@ function Sidebar() {
         ) : (
           <div className="side-guest">
             <strong>Keep your memories</strong>
-            <small>Create a free account to take and download classic photo strips.</small>
+            <small>Create a free account for five designs with photo and Live Strip downloads.</small>
             <Button to={`/signup?next=${encodeURIComponent(path)}`} size="sm" block>
               Sign Up
             </Button>
