@@ -812,10 +812,11 @@
   .popular-controls > span { max-width: 160px; }
   .about { padding-top: 20px; }
   .about-intro { padding: 0 0 24px; gap: 0; flex-direction: column; align-items: flex-start; }
-  .about-art { align-self: flex-end; height: 130px; width: 160px; flex-basis: auto; margin-top: 12px; }
-  .about-art img { width: 140px; }
-  .about-leaf-one { left: -20px; }
-  .about-leaf-two { right: 0; }
+  .about-art { align-self: center; height: 140px; width: 180px; max-width: 100%; flex-basis: auto; margin-top: 16px; }
+  .about-art img { width: 140px; max-width: 100%; right: 50%; bottom: 0; transform: translateX(50%); }
+  .about-leaf-one { left: 0; }
+  .about-leaf-two { right: 0; top: 0; }
+  .about-heart { left: 0; }
   .steps { gap: 12px; }
   .step { padding: 20px; }
   .cta-card { padding: 30px 20px 135px; gap: 10px; }
