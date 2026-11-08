@@ -78,7 +78,7 @@ export function SignupPage() {
           <span className="auth-success-icon">
             <Icon name="check" size={30} strokeWidth={2.4} />
           </span>
-          <p className="muted">Your account is ready. Take classic photos and download your strips, or explore Premium for Live Strips, LDR and cloud saves.</p>
+          <p className="muted">Your account is ready. Try five free designs with photo and Live Strip downloads, or explore Premium for unlimited strips, LDR and cloud saves.</p>
           <Button size="lg" block iconRight="arrow-right" onClick={() => navigate(safeNext(next), { replace: true })} data-autofocus>
             {safeNext(next) === '/pricing' ? 'Continue to Premium' : next === '/booth' ? 'Back to the Photobooth' : 'Continue to PhotoBooth'}
           </Button>

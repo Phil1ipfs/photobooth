@@ -1,16 +1,12 @@
 // Which templates / layouts / filters are Premium. This is the single source of
 // truth for the UI; the database copy (public.premium_catalog — latest seed in
-// supabase/migrations/013_illustrated_love_templates.sql) enforces the same list
+// supabase/migrations/014_free_template_allowances.sql) enforces the same list
 // server-side, and a unit test (src/config/catalog.test.js) fails if they drift.
 
-// Free accounts can take and download classic still photos.
-export const FREE_TEMPLATE_IDS = ['classic'];
+// Each free design includes separate lifetime allowances for photos and Live Strips.
+export const FREE_TEMPLATE_IDS = ['classic', 'love-hearts', 'polaroid', 'vintage-film', 'pink-pop'];
 
 export const PREMIUM_TEMPLATE_IDS = [
-  'love-hearts',
-  'polaroid',
-  'vintage-film',
-  'pink-pop',
   'magazine',
   'cat',
   'y2k-chrome',
@@ -97,17 +93,17 @@ export const FILTERS = [
   { id: 'fade', label: 'Faded film', tier: 'premium' },
 ];
 
-// Free accounts can create this many photostrips in total (Premium/admin: unlimited).
-// Enforced in the database by supabase/migrations/005_strip_creation_limit.sql;
-// deleting strips doesn't give the allowance back.
-export const FREE_STRIP_LIMIT = 2;
+// Per account, per design, per capture type. Deleting strips does not reset usage.
+// Enforced by supabase/migrations/014_free_template_allowances.sql.
+export const FREE_STRIPS_PER_MODE = 2;
+export const FREE_STRIP_LIMIT = FREE_TEMPLATE_IDS.length * FREE_STRIPS_PER_MODE * 2;
 
 /**
  * Feature catalogue. `tier` is the minimum plan; the plans in plans.js list the
  * features they include. Add a feature here, gate it with canUseFeature().
  */
 export const FEATURES = {
-  live_strips: { label: 'Live Strips', tier: 'premium' },
+  live_strips: { label: 'Live Strips', tier: 'free' },
   ldr_rooms: { label: 'LDR Photobooth', tier: 'premium' },
   music_library: { label: 'Music library', tier: 'premium' },
   cloud_save: { label: 'Save to My Photos', tier: 'premium' },

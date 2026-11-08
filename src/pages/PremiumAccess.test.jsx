@@ -12,11 +12,13 @@ let mockReady = true;
 let mockAuthReady = true;
 let mockQuery = '';
 let mockInitialPrefs;
+let mockStripUsage = null;
 const mockUpgrade = jest.fn();
 const mockSave = jest.fn();
 const mockFavorite = jest.fn();
 const mockGetBlob = jest.fn();
 const mockAuthorize = jest.fn();
+const mockEnsure = jest.fn();
 const mockJoin = jest.fn();
 const mockCreate = jest.fn();
 
@@ -24,7 +26,7 @@ jest.mock('../context/EntitlementsContext', () => ({ useEntitlements: () => {
   const rules = jest.requireActual('../lib/entitlements');
   const entitlements = { plan: mockPlan };
   return {
-    ready: mockReady, entitlements, stripUsage: null, setStripUsage: () => {}, openUpgrade: mockUpgrade,
+    ready: mockReady, entitlements, stripUsage: mockStripUsage, setStripUsage: () => {}, openUpgrade: mockUpgrade,
     isPremium: rules.isPremium(entitlements), isAdmin: rules.isAdmin(entitlements),
     canUseFeature: (id) => rules.canUseFeature(entitlements, id),
     canUseTemplate: (t) => rules.canUseTemplate(entitlements, t),
@@ -66,7 +68,7 @@ jest.mock('../templates/render', () => ({ renderStrip: async () => ({
 jest.mock('../lib/share', () => ({ ...jest.requireActual('../lib/share'), downloadBlob: jest.fn(), printBlob: jest.fn(), shareBlob: jest.fn() }));
 jest.mock('../lib/stripGate', () => ({
   ...jest.requireActual('../lib/stripGate'),
-  createStripGate: () => ({ state: { id: 'c1' }, authorizeExport: mockAuthorize, beginStrip: () => {}, reset: () => {} }),
+  createStripGate: () => ({ state: { id: 'c1' }, authorizeExport: mockAuthorize, ensureCreation: mockEnsure, beginStrip: () => {}, reset: () => {} }),
 }));
 jest.mock('../lib/ldr', () => ({ ...jest.requireActual('../lib/ldr'), createRoom: (...args) => mockCreate(...args), joinRoom: (...args) => mockJoin(...args) }));
 jest.mock('../lib/analytics', () => ({ track: () => {} }));
@@ -76,23 +78,25 @@ beforeEach(() => {
   mockQuery = '';
   jest.clearAllMocks();
   mockPlan = 'free';
+  mockStripUsage = null;
   mockReady = true;
   mockInitialPrefs = { ...DEFAULT_PREFS, countdown: 0, sound: false };
   mockAuthorize.mockResolvedValue({ allowed: true });
+  mockEnsure.mockResolvedValue({ allowed: false, reason: 'strip_limit_reached' });
   mockGetBlob.mockResolvedValue(new Blob(['photo'], { type: 'image/png' }));
   mockCreate.mockImplementation(() => new Promise(() => {}));
   sessionStorage.clear();
   sessionStorage.setItem('pb:booth-session', JSON.stringify({ photos: Array(4).fill('data:image/jpeg;base64,cGhvdG8='), templateId: 'classic' }));
 });
 
-test('Free can download a classic photo, while Live, Save, Share, Print and music open upgrade prompts', async () => {
+test('Free can download a photo and enter Live, while Save, Share, Print and music require Premium', async () => {
   render(<Booth />);
   await screen.findByAltText(/Classic Strip strip preview/i);
   fireEvent.click(screen.getByRole('button', { name: 'Download' }));
   await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/\.png$/)));
   expect(mockAuthorize).toHaveBeenCalledTimes(1);
   for (const [name, feature] of [
-    [/^Live$/, 'live_strips'], [/^Save \(Premium\)$/, 'cloud_save'], [/^Share \(Premium\)$/, 'share_print'],
+    [/^Save \(Premium\)$/, 'cloud_save'], [/^Share \(Premium\)$/, 'share_print'],
     [/^Print \(Premium\)$/, 'share_print'], [/^Music library \(Premium\)$/, 'music_library'],
   ]) {
     fireEvent.click(screen.getByRole('button', { name }));
@@ -103,6 +107,8 @@ test('Free can download a classic photo, while Live, Save, Share, Print and musi
   expect(printBlob).not.toHaveBeenCalled();
   expect(shareBlob).not.toHaveBeenCalled();
   expect(mockAuthorize).toHaveBeenCalledTimes(1); // locked actions don't consume a free strip
+  fireEvent.click(screen.getByRole('button', { name: 'Live' }));
+  expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('a template link waits for restored account settings and preserves later manual layout changes', async () => {
@@ -119,21 +125,21 @@ test('a template link waits for restored account settings and preserves later ma
   expect(screen.getByRole('combobox', { name: 'Photo layout' })).toHaveValue('grid-3x2');
 });
 
-test('saved Premium preferences cannot restore Live, premium templates, layouts, filters or HD on a Free account', async () => {
-  mockInitialPrefs = { ...mockInitialPrefs, boothMode: 'live', lastTemplate: 'polaroid', layout: 'grid-2x2', filter: 'warm', hd: true };
-  sessionStorage.setItem('pb:booth-session', JSON.stringify({ photos: [], templateId: 'polaroid' }));
+test('Free can keep Live mode but cannot restore paid designs, layouts, filters or HD', async () => {
+  mockInitialPrefs = { ...mockInitialPrefs, boothMode: 'live', lastTemplate: 'magazine', layout: 'grid-2x2', filter: 'warm', hd: true };
+  sessionStorage.setItem('pb:booth-session', JSON.stringify({ photos: [], templateId: 'magazine' }));
   render(<Booth />);
   await screen.findByAltText(/Classic Strip strip preview/i);
   expect(screen.getByRole('combobox', { name: 'Photo layout' })).toHaveValue('strip-1x4');
   expect(screen.getByRole('combobox', { name: 'Photo filter' })).toHaveValue('none');
-  expect(screen.getByRole('switch', { name: /HD download/ })).not.toBeChecked();
-  expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByRole('switch', { name: /HD download/ })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.change(screen.getByRole('combobox', { name: 'Photo filter' }), { target: { value: 'noir' } });
   expect(mockUpgrade).toHaveBeenLastCalledWith(expect.objectContaining({ feature: 'premium_filters' }));
   expect(screen.getByRole('combobox', { name: 'Photo filter' })).toHaveValue('none');
 });
 
-test.each(['premium', 'admin'])('%s can enter Live mode, and losing Premium returns the booth to Photo', async (plan) => {
+test.each(['premium', 'admin'])('%s can enter Live mode, and losing Premium preserves free Live access', async (plan) => {
   mockPlan = plan;
   const { rerender } = render(<Booth />);
   fireEvent.click(screen.getByRole('button', { name: 'Live' }));
@@ -142,8 +148,8 @@ test.each(['premium', 'admin'])('%s can enter Live mode, and losing Premium retu
   expect(mockUpgrade).not.toHaveBeenCalled();
   mockPlan = 'free';
   rerender(<Booth />);
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true'));
-  expect(screen.getByRole('button', { name: 'Print (Premium)' })).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true'));
+  expect(screen.getByRole('button', { name: 'Save (Premium)' })).toBeInTheDocument();
 });
 
 test('Free direct LDR visits never mount the room lobby or call room RPCs', () => {
@@ -194,12 +200,31 @@ test('Free keeps downloads of existing saved photos, while saved-photo Share, Pr
   await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
 });
 
-test('Free has only the Classic template and Original photos; every paid feature is available to Premium and admin', () => {
-  expect(permissions.canUseTemplate({ plan: 'free' }, 'classic')).toBe(true);
-  expect(permissions.canUseTemplate({ plan: 'free' }, 'love-hearts')).toBe(false);
-  for (const feature of ['live_strips', 'ldr_rooms', 'music_library', 'cloud_save', 'share_print', 'favorites', 'hd_export']) {
+test('Free has five photo and Live designs; the other features require Premium', () => {
+  for (const id of ['classic', 'love-hearts', 'polaroid', 'vintage-film', 'pink-pop']) expect(permissions.canUseTemplate({ plan: 'free' }, id)).toBe(true);
+  expect(permissions.canUseTemplate({ plan: 'free' }, 'magazine')).toBe(false);
+  expect(permissions.canUseFeature({ plan: 'free' }, 'live_strips')).toBe(true);
+  for (const feature of ['ldr_rooms', 'music_library', 'cloud_save', 'share_print', 'favorites', 'hd_export']) {
     expect(permissions.canUseFeature({ plan: 'free' }, feature)).toBe(false);
     expect(permissions.canUseFeature({ plan: 'premium' }, feature)).toBe(true);
     expect(permissions.canUseFeature({ plan: 'admin' }, feature)).toBe(true);
   }
+});
+
+test('the booth displays both allowances and claims the selected capture type', async () => {
+  mockStripUsage = { used: 2, limit: 20, unlimited: false, templates: {
+    classic: { photo: { used: 2, limit: 2 }, live_strip: { used: 0, limit: 2 } },
+  } };
+  render(<Booth />);
+  await screen.findByText(/Classic Strip: 2 \/ 2 photo strips · 0 \/ 2 Live Strips used/);
+  fireEvent.click(screen.getByRole('button', { name: 'Take New Strip' }));
+  await waitFor(() => expect(mockEnsure).toHaveBeenCalledWith(expect.objectContaining({ template: 'classic', mediaType: 'photo' })));
+  expect(mockUpgrade).toHaveBeenLastCalledWith(expect.objectContaining({ title: expect.stringContaining('2 free photo strips for Classic Strip') }));
+  mockUpgrade.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: 'Live' }));
+  expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
+  expect(mockUpgrade).not.toHaveBeenCalled();
+  expect(screen.queryByText(/You’ve used your 2 free Live Strips for this design/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Take Live Strip' }));
+  await waitFor(() => expect(mockEnsure).toHaveBeenLastCalledWith(expect.objectContaining({ template: 'classic', mediaType: 'live_strip' })));
 });

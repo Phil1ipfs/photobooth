@@ -10,7 +10,7 @@ import { useEntitlements } from '../context/EntitlementsContext';
 import { useToast } from '../context/ToastContext';
 import { useRouter } from '../lib/router';
 import { TIERS, enabledPlans, formatPrice } from '../config/plans';
-import { FREE_STRIP_LIMIT, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
+import { FREE_STRIP_LIMIT, FREE_STRIPS_PER_MODE, FREE_TEMPLATE_IDS, PREMIUM_LAYOUT_IDS, PREMIUM_TEMPLATE_IDS } from '../config/catalog';
 import { LAYOUTS, TEMPLATES } from '../templates/data';
 import { startCheckout } from '../lib/billing';
 import { describePlan } from '../lib/entitlements';
@@ -20,13 +20,13 @@ import useCheckoutEligibility from '../components/billing/useCheckoutEligibility
 const COMPARE = [
   { label: 'Classic photos, countdown & flash', free: true, premium: true },
   { label: 'Download photo strips', free: true, premium: true },
-  { label: 'Live Strips (MP4 & GIF)', free: false, premium: true },
+  { label: 'Live Strips (MP4 & GIF)', free: `${FREE_STRIPS_PER_MODE} per free design`, premium: 'Unlimited' },
   { label: 'LDR Photobooth rooms', free: false, premium: true },
   { label: 'Music library', free: false, premium: true },
   { label: 'Save to My Photos & Favorites', free: false, premium: true },
   { label: 'Share & print', free: false, premium: true },
-  { label: 'Photostrips you can create', free: `${FREE_STRIP_LIMIT} in total`, premium: 'Unlimited' },
-  { label: 'Templates', free: 'Classic only', premium: `All ${TEMPLATES.length}` },
+  { label: 'Photostrips you can create', free: `${FREE_STRIPS_PER_MODE} photos + ${FREE_STRIPS_PER_MODE} Live per design`, premium: 'Unlimited' },
+  { label: 'Templates', free: `${FREE_TEMPLATE_IDS.length} free designs`, premium: `All ${TEMPLATES.length}` },
   { label: 'Layouts', free: '1 × 4, 1 × 2', premium: `All ${LAYOUTS.length}` },
   { label: 'Photo filters', free: 'Original', premium: 'Original, B&W, Sepia, Warm, Cool, Faded' },
   { label: 'HD downloads (2× resolution)', free: false, premium: true },
@@ -37,9 +37,9 @@ const COMPARE = [
 const FAQ = [
   ['How long does Premium last?', 'Premium costs ₱99 per month. Each payment unlocks all Premium features for 30 days. Previously purchased yearly passes keep their original expiry date.'],
   ['Does it renew automatically?', 'No. Each payment adds 30 days of Premium. Renew manually from Settings → Billing; your new 30 days are added to the time you have left. There are no automatic charges.'],
-  ['Is the free plan really free?', `Yes — no card needed. Your free account includes ${FREE_STRIP_LIMIT} classic still-photo strips in total, using the Classic template and Original filter. Download the same strip again at no extra cost. Live Strips, LDR, music, cloud saves, sharing and printing require Premium.`],
+  ['Is the free plan really free?', `Yes — no card needed. Each account gets ${FREE_STRIPS_PER_MODE} photo strips and ${FREE_STRIPS_PER_MODE} Live Strips on each of ${FREE_TEMPLATE_IDS.length} free designs: Classic, Love Hearts, Polaroid, Vintage Film and Pink Pop. That is ${FREE_STRIP_LIMIT} strips in total, with the Original filter and no expiry. Existing usage counts toward these lifetime allowances. Download the same finished strip again at no extra cost; deleting a strip does not reset usage. LDR, music, cloud saves, sharing and printing require Premium.`],
   ['How can I pay?', 'Pay with GCash, Maya or a debit/credit card on PayMongo’s secure checkout page. PhotoBooth never sees or stores your payment details.'],
-  ['What happens to Premium strips if I downgrade?', 'Everything you already saved stays in My Photos for viewing, downloading and deleting. Creating new Live Strips, using LDR, saving, sharing, printing and other Premium features requires an active Premium pass.'],
+  ['What happens to Premium strips if I downgrade?', 'Everything you already saved stays in My Photos for viewing, downloading and deleting. You can use any remaining free photo and Live Strip allowances. Premium designs, unlimited strips, LDR, saving, sharing and printing require an active Premium pass.'],
 ];
 
 export default function Pricing() {
@@ -81,7 +81,7 @@ export default function Pricing() {
           <h1>
             Simple plans for <span className="script accent">beautiful</span> memories
           </h1>
-          <p className="muted">Make your first 2 photostrips free. Upgrade for unlimited strips and every look.</p>
+          <p className="muted">Five free designs, each with two photo strips and two Live Strips. Upgrade for unlimited strips and every look.</p>
           {plans.length > 1 && (
             <div className="segmented pricing-toggle" role="group" aria-label="Billing interval">
               {plans.map((p) => (

@@ -9,6 +9,7 @@ import DemoModal from '../components/landing/DemoModal';
 import { Link, useRouter } from '../lib/router';
 import { useAuth } from '../context/AuthContext';
 import { TEMPLATES, getTemplate } from '../templates/data';
+import { FREE_TEMPLATE_IDS, FREE_STRIPS_PER_MODE, templateTier } from '../config/catalog';
 import ghost from '../assets/halloween/ghost.webp';
 import pumpkin from '../assets/halloween/pumpkin.webp';
 
@@ -34,14 +35,14 @@ function Bat({ className = '' }) {
 }
 
 const FEATURES = [
-  { icon: 'templates', title: `${TEMPLATES.length} Templates`, text: 'Classic is free. Unlock every look with Premium.' },
-  { icon: 'download', title: 'Instant Download', text: 'Keep your classic photo strip for free.' },
+  { icon: 'templates', title: `${TEMPLATES.length} Templates`, text: `${FREE_TEMPLATE_IDS.length} free designs. Unlock every look with Premium.` },
+  { icon: 'download', title: 'Instant Download', text: 'Free photo and Live Strip downloads on five designs.' },
   { icon: 'wand', title: 'Easy to Use', text: 'Simple, clean, and fun to navigate.' },
   { icon: 'share', title: 'Share the Memories', text: 'Unlock sharing and printing with Premium.' },
 ];
 
 const STEPS = [
-  { n: '01', icon: 'camera', title: 'Pick your vibe', text: 'Start with Classic for free, or explore cute, retro and seasonal strips with Premium.' },
+  { n: '01', icon: 'camera', title: 'Pick your vibe', text: 'Try five free designs, or explore every cute, retro and seasonal look with Premium.' },
   { n: '02', icon: 'wand', title: 'Strike a pose', text: 'A gentle countdown snaps your photos. Don’t love one? Retake just that slot.' },
   { n: '03', icon: 'heart', title: 'Keep the memory', text: 'Download your strip. Unlock sharing, printing and your personal gallery with Premium.' },
 ];
@@ -105,7 +106,7 @@ export default function Landing() {
             <p className="hero-note">
               <Icon name="sparkle" size={14} /> No app needed · Phone & desktop friendly
             </p>
-            <p className="hero-free-note">Start with 2 free Classic strips. <Link to="/pricing">Explore Premium <span aria-hidden="true">→</span></Link></p>
+            <p className="hero-free-note">{FREE_TEMPLATE_IDS.length} free designs · {FREE_STRIPS_PER_MODE} photo + {FREE_STRIPS_PER_MODE} Live Strips each. <Link to="/pricing">Explore Premium <span aria-hidden="true">→</span></Link></p>
           </div>
 
           <div className="hero-art" aria-hidden="true">
@@ -183,7 +184,7 @@ export default function Landing() {
                 >
                   <TemplatePreview template={t} scale={0.32} alt="" />
                   <span>{t.name}</span>
-                  <small className={`popular-tier${t.id === 'classic' ? ' popular-tier-free' : ''}`}>{t.id === 'classic' ? 'Free' : 'Premium'}</small>
+                  <small className={`popular-tier${templateTier(t) === 'free' ? ' popular-tier-free' : ''}`}>{templateTier(t) === 'free' ? 'Free' : 'Premium'}</small>
                 </button>
               </li>
             ))}

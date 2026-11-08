@@ -17,9 +17,9 @@ export default function FeatureGate({ feature, children }) {
       <section className="card feature-locked" aria-label={`${label} requires Premium`}>
         <PremiumBadge locked />
         <h2>Unlock {label}</h2>
-        <p className="muted">Free accounts can take classic photos and download them. Upgrade to use {label} and every other Premium feature.</p>
+        <p className="muted">Free accounts include five designs with photo and Live Strip downloads. Upgrade to use {label} and every other Premium feature.</p>
         <Button icon="sparkle" onClick={() => openUpgrade({ feature, title: `Unlock ${label}`, description: `${label} is included with Premium for ₱99/month (30 days).` })}>Upgrade to Premium</Button>
-        <Button variant="ghost" to="/booth">Take a classic photo</Button>
+        <Button variant="ghost" to="/booth">Try a free design</Button>
       </section>
     </AppLayout>
   );

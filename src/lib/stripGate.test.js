@@ -1,6 +1,9 @@
 // Booth-side sequencing of the Free photostrip allowance. The fake API below mirrors
 // the SQL functions in supabase/migrations/005_strip_creation_limit.sql.
-import { compositionSignature, createStripGate } from './stripGate';
+import { compositionSignature, createStripGate, stripApi } from './stripGate';
+import { supabase } from './supabase';
+
+jest.mock('./supabase', () => ({ isSupabaseConfigured: true, supabase: { rpc: jest.fn() } }));
 
 function fakeDb({ tier = 'free', used = 0, limit = 2, delay = 0 } = {}) {
   const db = { tier, limit, creations: new Map(), claims: 0, finalizes: 0 };
@@ -156,4 +159,80 @@ test('unlimited plans: a changed design gets its own creation (each creation is 
     await gate.authorizeExport(sig(A, 'magazine'));
     expect(gate.state.id).toBe(second);
   }
+});
+
+test('photo and Live drafts are separate and switching back reuses the correct claim', async () => {
+  const db = fakeDb({ tier: 'premium' });
+  const gate = createStripGate({ api: db.api });
+  const photo = { template: 'classic', mediaType: 'photo' };
+  const live = { template: 'classic', mediaType: 'live_strip' };
+  const other = { template: 'polaroid', mediaType: 'photo' };
+  await gate.ensureCreation(photo);
+  const photoId = gate.state.id;
+  await gate.ensureCreation(live);
+  const liveId = gate.state.id;
+  expect(liveId).not.toBe(photoId);
+  await gate.ensureCreation(other);
+  expect(gate.state.id).not.toBe(photoId);
+  await gate.ensureCreation(photo);
+  expect(gate.state.id).toBe(photoId);
+  await gate.ensureCreation(live);
+  expect(gate.state.id).toBe(liveId);
+  expect(db.claims).toBe(3);
+  const restored = createStripGate({ api: db.api, initial: gate.state });
+  await restored.ensureCreation(photo);
+  expect(restored.state.id).toBe(photoId);
+  expect(db.claims).toBe(3);
+  restored.reset();
+  expect(restored.state.scopes).toEqual({});
+});
+
+test('a photo export cannot reuse a Live claim, even with the same composition signature', async () => {
+  const db = fakeDb({ tier: 'premium' });
+  const gate = createStripGate({ api: db.api });
+  const signature = sig(A);
+  await gate.authorizeExport(signature, { template: 'classic', mediaType: 'photo' });
+  const photoId = gate.state.id;
+  await gate.authorizeExport(signature, { template: 'classic', mediaType: 'live_strip' });
+  expect(gate.state.id).not.toBe(photoId);
+  expect(db.claims).toBe(2);
+  await gate.authorizeExport(signature, { template: 'classic', mediaType: 'photo' });
+  expect(gate.state.id).toBe(photoId);
+  expect(db.claims).toBe(2);
+});
+
+test('starting a new exported photo strip preserves the existing Live Strip', async () => {
+  const db = fakeDb({ tier: 'premium' });
+  const gate = createStripGate({ api: db.api });
+  const photo = { template: 'classic', mediaType: 'photo' };
+  const live = { template: 'classic', mediaType: 'live_strip' };
+  await gate.authorizeExport(sig(A), photo);
+  await gate.authorizeExport(sig(B), live);
+  const liveId = gate.state.id;
+  gate.beginStrip(photo);
+  await gate.ensureCreation(photo);
+  expect(db.claims).toBe(3);
+  await gate.authorizeExport(sig(B), live);
+  expect(gate.state.id).toBe(liveId);
+  expect(db.claims).toBe(3);
+});
+
+test('mode-aware RPCs include the media type for both capture and download', async () => {
+  supabase.rpc.mockResolvedValue({ data: { allowed: true }, error: null });
+  await stripApi.claim({ template: 'polaroid', layout: 'strip-1x4', mediaType: 'live' });
+  expect(supabase.rpc).toHaveBeenLastCalledWith('claim_strip_creation_for_mode', {
+    p_template: 'polaroid', p_layout: 'strip-1x4', p_media_type: 'live_strip',
+  });
+  await stripApi.finalize('creation', 'signature', { template: 'polaroid', layout: 'strip-1x4', mediaType: 'photo' });
+  expect(supabase.rpc).toHaveBeenLastCalledWith('finalize_strip_creation_for_mode', {
+    p_id: 'creation', p_signature: 'signature', p_template: 'polaroid', p_layout: 'strip-1x4', p_media_type: 'photo',
+  });
+});
+
+test('per-design counters survive the claim-to-UI usage update', async () => {
+  const templates = { classic: { photo: { used: 2, limit: 2 }, live_strip: { used: 0, limit: 2 } } };
+  const onUsage = jest.fn();
+  const gate = createStripGate({ api: { claim: async () => ({ allowed: false, used: 2, limit: 20, unlimited: false, templates }) }, onUsage });
+  await gate.ensureCreation({ template: 'classic', mediaType: 'photo' });
+  expect(onUsage).toHaveBeenCalledWith({ used: 2, limit: 20, unlimited: false, templates });
 });

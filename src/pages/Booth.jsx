@@ -19,8 +19,9 @@ import { usePrefs } from '../context/PrefsContext';
 import { useStrips } from '../context/StripsContext';
 import { useToast } from '../context/ToastContext';
 import { useEntitlements } from '../context/EntitlementsContext';
-import { FEATURES, FREE_STRIP_LIMIT } from '../config/catalog';
+import { FEATURES, FREE_STRIPS_PER_MODE, FREE_TEMPLATE_IDS } from '../config/catalog';
 import { compositionSignature, createStripGate } from '../lib/stripGate';
+import { stripMediaType, templateStripUsage } from '../lib/stripUsage';
 import {
   LIVE,
   captureFrames,
@@ -67,7 +68,7 @@ export default function Booth() {
     if (!ent.ready) return false;
     if (ent.canUseFeature(feature)) return true;
     const label = FEATURES[feature].label;
-    ent.openUpgrade({ feature, title: `Unlock ${label}`, description: `${label} is part of Premium. Free accounts can take and download classic photos.` });
+    ent.openUpgrade({ feature, title: `Unlock ${label}`, description: `${label} is part of Premium. Free accounts include five designs with photo and Live Strip downloads.` });
     return false;
   };
 
@@ -141,16 +142,23 @@ export default function Booth() {
     gateRef.current = createStripGate({ initial: restored.current?.creation, onChange: setCreation, onUsage: setStripUsage });
   }
   const gate = gateRef.current;
-  const limitReached = !!stripUsage && !stripUsage.unlimited && stripUsage.used >= stripUsage.limit;
+  const template = getTemplate(templateId);
+  const mediaType = stripMediaType(mode);
+  const photoUsage = templateStripUsage(stripUsage, template.id, 'photo');
+  const liveUsage = templateStripUsage(stripUsage, template.id, 'live');
+  const selectedUsage = mode === 'live' ? liveUsage : photoUsage;
+  const limitReached = !!selectedUsage && !selectedUsage.unlimited && selectedUsage.used >= selectedUsage.limit;
+  const currentCreation = creation?.scopes?.[`${template.id}|${mediaType}`];
+  const hasCurrentDraft = !!currentCreation?.id && !currentCreation.signature;
   const openUpgradeFn = ent.openUpgrade;
   const showLimit = useCallback(
     () =>
       openUpgradeFn({
         feature: 'unlimited_strips',
-        title: `You’ve reached your ${FREE_STRIP_LIMIT} free photostrips`,
-        description: 'Upgrade to Premium to create unlimited photostrips.',
+        title: `You’ve used your ${FREE_STRIPS_PER_MODE} free ${mode === 'live' ? 'Live Strips' : 'photo strips'} for ${template.name}`,
+        description: 'Try another free design or capture type, or upgrade to Premium for unlimited strips. You can still download a strip you already created.',
       }),
-    [openUpgradeFn]
+    [openUpgradeFn, mode, template.name]
   );
   // A different account (or signing out) must not reuse this browser's creation.
   const userIdRef = useRef(user?.id);
@@ -158,8 +166,6 @@ export default function Booth() {
     if (userIdRef.current !== user?.id) gate.reset();
     userIdRef.current = user?.id;
   }, [user?.id, gate]);
-
-  const template = getTemplate(templateId);
 
   // Templates designed for a specific arrangement (e.g. Comic Pop's panels) switch
   // to it when chosen; the user can still pick another layout afterwards.
@@ -293,20 +299,20 @@ export default function Booth() {
       return;
     }
     if (!user) {
-      toast.info('Log in to create your strip', `Free accounts include ${FREE_STRIP_LIMIT} photostrips — it only takes a minute.`);
+      toast.info('Log in to create your strip', `Try ${FREE_TEMPLATE_IDS.length} free designs, with ${FREE_STRIPS_PER_MODE} photo strips and ${FREE_STRIPS_PER_MODE} Live Strips per design.`);
       navigate('/login?next=/booth');
       return;
     }
     let current = photosRef.current;
     const freshStrip = prefs.captureMode !== 'single' && current.every(Boolean);
     const emptyStrip = current.every((p) => !p);
-    // Starting a new strip needs a creation from the database (Free: 2 in total).
-    if (freshStrip || emptyStrip || !gate.active) {
-      if (freshStrip || emptyStrip) gate.beginStrip();
+    // Always check the selected design/type; a draft in another mode cannot pay for it.
+    {
+      if (freshStrip || emptyStrip) gate.beginStrip({ template: template.id, mediaType: 'photo' });
       claimingRef.current = true;
       let res;
       try {
-        res = await gate.ensureCreation({ template: template.id, layout: layout.id });
+        res = await gate.ensureCreation({ template: template.id, layout: layout.id, mediaType: 'photo' });
       } catch (err) {
         toast.error('Couldn’t start your strip', err.message);
         return;
@@ -379,7 +385,7 @@ export default function Booth() {
       return;
     }
     if (!user) {
-      toast.info('Log in to create your strip', `Free accounts include ${FREE_STRIP_LIMIT} photostrips — it only takes a minute.`);
+      toast.info('Log in to create your strip', `Try ${FREE_TEMPLATE_IDS.length} free designs, with ${FREE_STRIPS_PER_MODE} photo strips and ${FREE_STRIPS_PER_MODE} Live Strips per design.`);
       navigate('/login?next=/booth');
       return;
     }
@@ -389,13 +395,13 @@ export default function Booth() {
     const freshStrip = slot < 0;
     const emptyStrip = liveVisible.every((c) => !c);
     if (freshStrip) slot = 0;
-    // Live Strips are Premium; each capture still gets its own creation record.
-    if (freshStrip || emptyStrip || !gate.active) {
-      if (freshStrip || emptyStrip) gate.beginStrip();
+    // Live Strip and photo allowances are independent for every design.
+    {
+      if (freshStrip || emptyStrip) gate.beginStrip({ template: template.id, mediaType: 'live_strip' });
       claimingRef.current = true;
       let res;
       try {
-        res = await gate.ensureCreation({ template: template.id, layout: layout.id });
+        res = await gate.ensureCreation({ template: template.id, layout: layout.id, mediaType: 'live_strip' });
       } catch (err) {
         toast.error('Couldn’t start your strip', err.message);
         return;
@@ -485,7 +491,7 @@ export default function Booth() {
 
   const clearLive = () => {
     stop();
-    gate.beginStrip();
+    gate.beginStrip({ template: template.id, mediaType: 'live_strip' });
     liveClipsRef.current.forEach((c) => releaseFrames(c?.frames));
     setLiveClips([]);
     setLiveSelected(null);
@@ -525,7 +531,7 @@ export default function Booth() {
 
   const clearPhotos = () => {
     stop();
-    gate.beginStrip(); // an exported strip is done; an unexported draft is reused
+    gate.beginStrip({ template: template.id, mediaType: 'photo' }); // reuse an unexported draft
     setCaptured([]);
     setSelected(0);
     setResultOpen(false);
@@ -577,7 +583,7 @@ export default function Booth() {
       filter: prefs.filter,
       aspect,
     });
-    const res = await gate.authorizeExport(signature, { template: template.id, layout: layout.id });
+    const res = await gate.authorizeExport(signature, { template: template.id, layout: layout.id, mediaType });
     if (!res.allowed) {
       showLimit();
       return false;
@@ -595,7 +601,7 @@ export default function Booth() {
     if (mode === 'live' && !requireFeature('live_strips')) return;
     if (!ensurePhotos()) return;
     if (!ent.canUseTemplate(template) || !ent.canUseLayout(layout) || !ent.canUseFilter(prefs.filter || 'auto')) {
-      openUpgrade({ feature: 'premium_templates', title: 'Unlock this look', description: 'Choose the Classic template and Original filter for a free download, or upgrade for every look.' });
+      openUpgrade({ feature: 'premium_templates', title: 'Unlock this look', description: 'Choose a free design and the Original filter for a free download, or upgrade for every look.' });
       return;
     }
     setBusyAction(id);
@@ -939,16 +945,16 @@ export default function Booth() {
               </>
             )}
           </p>
-          {user && stripUsage && !stripUsage.unlimited && (
-            <div className={`strip-usage${limitReached && !creation?.id ? ' is-full' : ''}`} role="status">
+          {user && selectedUsage && !stripUsage.unlimited && (
+            <div className={`strip-usage${limitReached && !hasCurrentDraft ? ' is-full' : ''}`} role="status">
               <span className="strip-usage-count">
-                {Math.min(stripUsage.used, stripUsage.limit)} / {stripUsage.limit} Free Strips Used
+                {template.name}: {photoUsage.used} / {photoUsage.limit} photo strips · {liveUsage.used} / {liveUsage.limit} Live Strips used
               </span>
-              {limitReached && !creation?.id && (
+              {limitReached && !hasCurrentDraft && (
                 <>
                   <p>
-                    You’ve reached your {stripUsage.limit} free photostrips. Upgrade to Premium to create unlimited
-                    photostrips.
+                    You’ve used your {selectedUsage.limit} free {mode === 'live' ? 'Live Strips' : 'photo strips'} for this design.
+                    Try another free design or capture type, or upgrade for unlimited strips.
                   </p>
                   <Button size="sm" icon="sparkle" to="/pricing" onClick={() => track('upgrade_clicked', { source: 'strip_limit' })}>
                     Upgrade to Premium
@@ -1030,7 +1036,7 @@ export default function Booth() {
             <p className="muted">
               {mode === 'live'
                 ? 'It plays forward and back on a loop. Download it as a video or GIF, or keep it in My Photos.'
-                : ent.canUseFeature('cloud_save') ? 'Download your strip, keep it in My Photos, or strike another pose.' : 'Download your classic photo strip, or strike another pose. Upgrade for Live Strips, LDR and saving to My Photos.'}
+                : ent.canUseFeature('cloud_save') ? 'Download your strip, keep it in My Photos, or strike another pose.' : 'Download your photo strip, or try a Live Strip. Upgrade for unlimited strips, LDR and saving to My Photos.'}
             </p>
             <div className="result-actions">
               <Button icon="download" block onClick={download} loading={busyAction === 'download'} disabled={!!busyAction} data-autofocus>

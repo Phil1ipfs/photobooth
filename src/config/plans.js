@@ -5,7 +5,7 @@
 // Premium is sold as a prepaid pass: each payment adds `days` of Premium, with no
 // automatic renewal (PayMongo Hosted Checkout — GCash, Maya, cards…).
 
-import { FREE_STRIP_LIMIT, FREE_TEMPLATE_IDS, PREMIUM_TEMPLATE_IDS } from './catalog';
+import { FREE_STRIP_LIMIT, FREE_STRIPS_PER_MODE, FREE_TEMPLATE_IDS, PREMIUM_TEMPLATE_IDS } from './catalog';
 
 export const CURRENCY = { code: 'PHP', symbol: '₱', locale: 'en-PH' };
 
@@ -16,13 +16,15 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    tagline: `Try PhotoBooth with ${FREE_STRIP_LIMIT} free photostrips.`,
+    tagline: `${FREE_TEMPLATE_IDS.length} free designs. Photos and Live Strips included.`,
     features: [
-      `${FREE_STRIP_LIMIT} classic photo strips to create and download`,
-      'Classic template with the Original filter',
+      `${FREE_STRIPS_PER_MODE} photo strips + ${FREE_STRIPS_PER_MODE} Live Strips per design`,
+      `${FREE_STRIP_LIMIT} strips in total, per account, with no expiry`,
+      'Classic, Love Hearts, Polaroid, Vintage Film and Pink Pop',
+      'Original filter',
       'Classic 1 × 4 and 1 × 2 strip layouts',
-      'Standard-resolution PNG downloads',
-      'Still photos with countdown & flash',
+      'PNG photo downloads and MP4 / GIF Live Strips',
+      'Countdown & flash',
       'Always ad-free',
     ],
   },
