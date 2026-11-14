@@ -42,6 +42,17 @@ const FAQ = [
   ['What happens to Premium strips if I downgrade?', 'Everything you already saved stays in My Photos for viewing, downloading and deleting. You can use any remaining free photo and Live Strip allowances. Premium designs, unlimited strips, LDR, saving, sharing and printing require an active Premium pass.'],
 ];
 
+// Display-only estimate from the USD/PHP mid-market rate on Nov 14, 2026.
+// PayMongo checkout continues to charge the plan price in PHP.
+const USD_PHP_REFERENCE_RATE = 63.9199;
+const USD_PHP_REFERENCE_DATE = 'Nov 14, 2026';
+const formatUsdEstimate = (phpAmount) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(phpAmount / USD_PHP_REFERENCE_RATE);
+
 export default function Pricing() {
   const { user } = useAuth();
   const { entitlements, isPremium } = useEntitlements();
@@ -129,10 +140,16 @@ export default function Pricing() {
             </h2>
             <p className="plan-tagline">{TIERS.premium.tagline}</p>
             {plan && (
-              <p className="plan-price">
-                <strong>{formatPrice(plan.price)}</strong>
-                <span>/ {plan.interval}</span>
-              </p>
+              <>
+                <p className="plan-price">
+                  <strong>{formatPrice(plan.price)}</strong>
+                  <span>/ {plan.interval}</span>
+                </p>
+                <p className="plan-note">
+                  Approx. {formatUsdEstimate(plan.price)} USD equivalent (rate as of {USD_PHP_REFERENCE_DATE}).
+                  PayMongo charges {formatPrice(plan.price)} PHP; your card provider’s conversion may differ.
+                </p>
+              </>
             )}
             <ul className="plan-features">
               {TIERS.premium.features.map((f) => (
